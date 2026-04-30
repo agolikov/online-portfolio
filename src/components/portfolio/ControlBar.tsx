@@ -88,12 +88,12 @@ export function ControlBar({ onExport }: Props) {
           )}
         </div>
         <a
-          href="https://github.com/agolikov/online-profile"
+          href="https://github.com/agolikov/online-portfolio"
           target="_blank"
           rel="noreferrer"
           className="chip flex items-center gap-1.5"
           aria-label="GitHub"
-          onClick={() => posthog.capture("github_link_clicked", { github_url: "https://github.com/agolikov/online-profile" })}
+          onClick={() => posthog.capture("github_link_clicked", { github_url: "https://github.com/agolikov/online-portfolio" })}
         >
           <Github size={12} /> GitHub
         </a>
