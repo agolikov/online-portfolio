@@ -1,0 +1,396 @@
+{
+  "profile": {
+    "name": "Arivyn Lessa",
+    "title": "Lead Product Engineer",
+    "location": "San Francisco, CA",
+    "email": "",
+    "website": "",
+    "github": "github.com",
+    "linkedin": "linkedin.com",
+    "summary": "Lead product engineer with 9+ years building user-facing products from scratch. Passionate about turning complex problems into intuitive interfaces. Experienced driving cross-functional teams, conducting user research, and shipping products that millions use daily. Specializing in scalable frontend architectures and data visualization."
+  },
+  "tech": [
+    {
+      "name": "JavaScript",
+      "category": "Language"
+    },
+    {
+      "name": "TypeScript",
+      "category": "Language"
+    },
+    {
+      "name": "Python",
+      "category": "Language"
+    },
+    {
+      "name": "Java",
+      "category": "Language"
+    },
+    {
+      "name": "React",
+      "category": "Frontend"
+    },
+    {
+      "name": "Vue.js",
+      "category": "Frontend"
+    },
+    {
+      "name": "Next.js",
+      "category": "Frontend"
+    },
+    {
+      "name": "Node.js",
+      "category": "Backend"
+    },
+    {
+      "name": "Express",
+      "category": "Backend"
+    },
+    {
+      "name": "GraphQL",
+      "category": "Protocol"
+    },
+    {
+      "name": "Firebase",
+      "category": "Backend"
+    },
+    {
+      "name": "PostgreSQL",
+      "category": "Database"
+    },
+    {
+      "name": "MongoDB",
+      "category": "Database"
+    },
+    {
+      "name": "Redis",
+      "category": "Database"
+    },
+    {
+      "name": "AWS",
+      "category": "Cloud"
+    },
+    {
+      "name": "Google Cloud",
+      "category": "Cloud"
+    },
+    {
+      "name": "Docker",
+      "category": "Infra"
+    },
+    {
+      "name": "Kubernetes",
+      "category": "Infra"
+    },
+    {
+      "name": "Figma",
+      "category": "Design"
+    },
+    {
+      "name": "D3.js",
+      "category": "Frontend"
+    },
+    {
+      "name": "Tailwind CSS",
+      "category": "Frontend"
+    },
+    {
+      "name": "Jest",
+      "category": "Testing"
+    },
+    {
+      "name": "Cypress",
+      "category": "Testing"
+    },
+    {
+      "name": "Git",
+      "category": "Tool"
+    },
+    {
+      "name": "Jira",
+      "category": "Tool"
+    },
+    {
+      "name": "Stripe API",
+      "category": "API"
+    },
+    {
+      "name": "REST API",
+      "category": "Protocol"
+    },
+    {
+      "name": "Datadog",
+      "category": "Observability"
+    },
+    {
+      "name": "Analytics",
+      "category": "Observability"
+    },
+    {
+      "name": "A/B Testing",
+      "category": "Product"
+    },
+    {
+      "name": "UX Design",
+      "category": "Design"
+    },
+    {
+      "name": "Accessibility",
+      "category": "Frontend"
+    },
+    {
+      "name": "Web Performance",
+      "category": "Frontend"
+    }
+  ],
+  "experience": [
+    {
+      "id": "exp-5",
+      "company": "Innovate Labs",
+      "role": "Lead Product Engineer",
+      "period": "Mar 2022 — Present",
+      "start": "2022-03",
+      "end": "present",
+      "location": "Remote, California",
+      "highlights": [
+        "Led the end-to-end redesign of the core analytics dashboard, improving user engagement by 45% through research-driven UX improvements",
+        "Architected a component library serving 150+ developers across 5 teams, reducing design inconsistencies and accelerating feature development",
+        "Mentored 8 junior engineers on full-stack development, performance optimization, and product thinking, 3 of whom were promoted"
+      ],
+      "tech": [
+        "React",
+        "TypeScript",
+        "Next.js",
+        "GraphQL",
+        "PostgreSQL",
+        "Node.js",
+        "AWS",
+        "Docker",
+        "Figma",
+        "D3.js",
+        "Tailwind CSS",
+        "Jest",
+        "Datadog"
+      ]
+    },
+    {
+      "id": "exp-4",
+      "company": "StreamFlow",
+      "role": "Senior Frontend Engineer",
+      "period": "Jul 2020 — Feb 2022",
+      "start": "2020-07",
+      "end": "2022-02",
+      "location": "San Francisco, CA",
+      "highlights": [
+        "Owned the payments integration for a fintech platform serving 500K+ users, reducing payment failures from 3.2% to 0.8%",
+        "Rebuilt video streaming UI using React Hooks, cutting bundle size by 35% and improving rendering performance by 2.1x",
+        "Drove adoption of TypeScript across the frontend codebase, improving code quality and reducing runtime bugs by 40%"
+      ],
+      "tech": [
+        "React",
+        "TypeScript",
+        "Node.js",
+        "Stripe API",
+        "WebRTC",
+        "GraphQL",
+        "PostgreSQL",
+        "Redis",
+        "Cypress",
+        "Google Cloud",
+        "Jest"
+      ]
+    },
+    {
+      "id": "exp-3",
+      "company": "DesignScale",
+      "role": "Full Stack Engineer",
+      "period": "Feb 2019 — Jun 2020",
+      "start": "2019-02",
+      "end": "2020-06",
+      "location": "Oakland, CA",
+      "highlights": [
+        "Built a real-time collaborative design tool handling 1M+ concurrent operations per day with WebSocket synchronization",
+        "Implemented automated testing suite reducing bug escape rate by 55% and increasing deployment confidence",
+        "Created interactive data visualization dashboards using D3.js and custom WebGL rendering for large datasets"
+      ],
+      "tech": [
+        "React",
+        "Vue.js",
+        "Node.js",
+        "Express",
+        "MongoDB",
+        "WebSocket",
+        "D3.js",
+        "WebGL",
+        "Docker",
+        "Kubernetes",
+        "Cypress",
+        "Jest"
+      ]
+    },
+    {
+      "id": "exp-2",
+      "company": "TechVenture Capital",
+      "role": "Frontend Engineer",
+      "period": "Jun 2017 — Jan 2019",
+      "start": "2017-06",
+      "end": "2019-01",
+      "location": "San Jose, CA",
+      "highlights": [
+        "Developed investment portfolio dashboard used by 50+ fund managers, processing real-time market data",
+        "Implemented accessibility improvements achieving WCAG 2.1 AA compliance across 200+ components",
+        "Optimized critical rendering path reducing page load time from 4.2s to 1.8s through code splitting and lazy loading"
+      ],
+      "tech": [
+        "React",
+        "JavaScript",
+        "Redux",
+        "Node.js",
+        "Express",
+        "PostgreSQL",
+        "AWS",
+        "Jest",
+        "Git",
+        "Jira"
+      ]
+    },
+    {
+      "id": "exp-1",
+      "company": "StartupXYZ",
+      "role": "Junior Frontend Developer",
+      "period": "Jan 2015 — May 2017",
+      "start": "2015-01",
+      "end": "2017-05",
+      "location": "Mountain View, CA",
+      "highlights": [
+        "Built interactive data entry forms processing 100K+ daily submissions with real-time validation",
+        "Transitioned legacy jQuery codebase to React, improving code maintainability and developer productivity",
+        "Collaborated with designers to implement responsive designs supporting mobile, tablet, and desktop experiences"
+      ],
+      "tech": [
+        "JavaScript",
+        "React",
+        "jQuery",
+        "HTML5",
+        "CSS3",
+        "Node.js",
+        "MongoDB",
+        "Firebase",
+        "Git"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "prj-1",
+      "name": "DataViz Studio",
+      "tagline": "Interactive data visualization toolkit",
+      "description": "Open-source library for creating custom interactive visualizations. Built on D3.js with React components for seamless integration. Used by 5K+ developers and downloaded 500K+ times monthly.",
+      "link": "github.com/jesschen/dataviz-studio",
+      "tech": [
+        "React",
+        "D3.js",
+        "TypeScript",
+        "Node.js",
+        "Jest",
+        "Git"
+      ]
+    },
+    {
+      "id": "prj-2",
+      "name": "FormFlow",
+      "tagline": "Form validation and management framework",
+      "description": "Lightweight TypeScript library for building complex forms with validation, error handling, and real-time feedback. Supports React and Vue with zero dependencies.",
+      "link": "github.com/jesschen/formflow",
+      "tech": [
+        "TypeScript",
+        "React",
+        "Vue.js",
+        "Jest",
+        "Git"
+      ]
+    },
+    {
+      "id": "prj-3",
+      "name": "Accessibility Checker",
+      "tagline": "Automated WCAG compliance testing tool",
+      "description": "CLI and browser extension for automated accessibility auditing. Identifies WCAG violations and suggests fixes with examples. Integrated into CI/CD pipelines for 200+ teams.",
+      "link": "github.com/jesschen/a11y-checker",
+      "tech": [
+        "Node.js",
+        "Python",
+        "Jest",
+        "Docker",
+        "Git",
+        "CLI"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-1",
+      "institution": "University of California, Berkeley",
+      "shortName": "UC Berkeley",
+      "degree": "Bachelor's Degree",
+      "field": "Computer Science with focus on Human-Computer Interaction",
+      "period": "Sep 2010 — May 2014",
+      "start": "2010-09",
+      "end": "2014-05",
+      "thesis": "Designing accessible interfaces for cognitive accessibility",
+      "skills": [
+        "UX Design",
+        "Algorithms & Data Structures",
+        "Web Development",
+        "Human-Computer Interaction"
+      ]
+    }
+  ],
+  "certificates": [
+    {
+      "id": "cert-1",
+      "name": "Advanced React Patterns",
+      "issuer": "Frontend Masters",
+      "year": "2023",
+      "link": "https://frontendmasters.com",
+      "tech": [
+        "React",
+        "TypeScript"
+      ]
+    },
+    {
+      "id": "cert-2",
+      "name": "Web Performance Optimization",
+      "issuer": "Google Cloud Skills Boost",
+      "year": "2023",
+      "credentialId": "a7f82b4c",
+      "link": "https://www.cloudskillsboost.google.com",
+      "tech": [
+        "Web Performance",
+        "Google Cloud"
+      ]
+    },
+    {
+      "id": "cert-3",
+      "name": "Accessibility for Web Developers",
+      "issuer": "A11ycasts by Google Chrome",
+      "year": "2022",
+      "link": "https://www.youtube.com/playlist?list=PLNYkxOF6rcICWx0C9Xc-RgEzwLvePng7V",
+      "tech": [
+        "Accessibility",
+        "HTML5",
+        "CSS3"
+      ]
+    },
+    {
+      "id": "cert-4",
+      "name": "GraphQL Fundamentals",
+      "issuer": "Apollo GraphQL",
+      "year": "2022",
+      "link": "https://www.apollographql.com",
+      "tech": [
+        "GraphQL",
+        "Node.js"
+      ]
+    }
+  ]
+}
