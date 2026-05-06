@@ -1,6 +1,6 @@
 import "dotenv/config";
 import OpenAI from "openai";
-import type { CoverLetterMetric, Portfolio } from "../src/types/portfolio.js";
+import type { Certificate, CoverLetterMetric, Education, Experience, Portfolio, Project, Story } from "../src/types/portfolio.js";
 import { db } from "./db.js";
 import { resumes } from "./schema.js";
 import { eq } from "drizzle-orm";
@@ -121,6 +121,10 @@ export function attachCoverLetter(
   };
 }
 
+async function savePortfolio(hash: string, portfolio: Portfolio): Promise<void> {
+  await db.update(resumes).set({ resumeData: portfolio }).where(eq(resumes.hash, hash));
+}
+
 // ── Tool executor ─────────────────────────────────────────────────────────────
 
 async function executeTool(
@@ -136,7 +140,7 @@ async function executeTool(
     case "update_skills": {
       const skills = args.skills as Array<{ name: string; category: string }>;
       const updated: Portfolio = { ...portfolio, tech: skills };
-      await db.update(resumes).set({ resumeData: updated }).where(eq(resumes.hash, hash));
+      await savePortfolio(hash, updated);
       const cats = new Set(skills.map((s) => s.category)).size;
       return {
         result: `Skills updated — ${skills.length} skills across ${cats} categories.`,
@@ -144,12 +148,54 @@ async function executeTool(
       };
     }
 
+    case "update_profile": {
+      const profile = args.profile as Portfolio["profile"];
+      const updated: Portfolio = { ...portfolio, profile };
+      await savePortfolio(hash, updated);
+      return { result: "Profile updated.", updatedPortfolio: updated };
+    }
+
     case "update_profile_field": {
       const field = args.field as keyof Portfolio["profile"];
       const value = args.value as string;
       const updated: Portfolio = { ...portfolio, profile: { ...portfolio.profile, [field]: value } };
-      await db.update(resumes).set({ resumeData: updated }).where(eq(resumes.hash, hash));
+      await savePortfolio(hash, updated);
       return { result: `Profile.${field} updated.`, updatedPortfolio: updated };
+    }
+
+    case "update_experience": {
+      const experience = args.experience as Experience[];
+      const updated: Portfolio = { ...portfolio, experience };
+      await savePortfolio(hash, updated);
+      return { result: `Experience updated — ${experience.length} entries.`, updatedPortfolio: updated };
+    }
+
+    case "update_projects": {
+      const projects = args.projects as Project[];
+      const updated: Portfolio = { ...portfolio, projects };
+      await savePortfolio(hash, updated);
+      return { result: `Projects updated — ${projects.length} entries.`, updatedPortfolio: updated };
+    }
+
+    case "update_certificates": {
+      const certificates = args.certificates as Certificate[];
+      const updated: Portfolio = { ...portfolio, certificates };
+      await savePortfolio(hash, updated);
+      return { result: `Certificates updated — ${certificates.length} entries.`, updatedPortfolio: updated };
+    }
+
+    case "update_education": {
+      const education = args.education as Education[];
+      const updated: Portfolio = { ...portfolio, education };
+      await savePortfolio(hash, updated);
+      return { result: `Education updated — ${education.length} entries.`, updatedPortfolio: updated };
+    }
+
+    case "update_stories": {
+      const stories = args.stories as Story[];
+      const updated: Portfolio = { ...portfolio, stories };
+      await savePortfolio(hash, updated);
+      return { result: `Stories updated — ${stories.length} entries.`, updatedPortfolio: updated };
     }
 
     case "save_cover_letter": {
@@ -173,12 +219,13 @@ function systemPrompt(portfolio: Portfolio): string {
 
 What you can do:
 - Answer questions about their experience, skills, projects, education, and behavioral stories
-- Update skills or profile fields in the database (those changes are live immediately)
+- Update profile, skills, experience, projects, certificates, education, stories, and cover letters in the database (those changes are live immediately)
 - Generate professional reports and analysis based on the resume
 - Write cover letters and save them so they appear at the /cover URL
 
 Rules:
 - Call get_resume before answering factual questions about the person.
+- Before using any update_* tool, call get_resume and preserve unrelated existing entries. Section update tools replace the entire section they receive.
 - When updating data confirm what changed.
 - When writing a cover letter, first call get_resume, craft the full letter, then call save_cover_letter.
 - Be concise and professional. Tailor responses to a job-seeking context.`;

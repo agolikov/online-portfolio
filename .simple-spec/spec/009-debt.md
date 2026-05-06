@@ -10,5 +10,6 @@
 - Cover-letter metadata supports only a single `current` letter; multiple target roles per resume still need versioning/history — severity: low.
 - Per-story visibility defaults missing `public` to visible; older or imported JSON remains public unless explicitly toggled off — severity: low.
 - New chat persistence, action confirmation, story visibility, and cover-letter metric flows have build coverage but no focused unit/integration tests — severity: medium.
-- API contract is implicit in `server/index.ts` and `src/lib/resumesApi.ts`; there is no OpenAPI/schema validation boundary — severity: low.
+- API contract is implicit in `server/app.ts` and `src/lib/resumesApi.ts`; there is no OpenAPI/schema validation boundary — severity: low.
+- Vercel deployment config is present, but there is no automated preview-deployment smoke test for SPA fallback routes or `/api/*` rewrites — severity: medium.
 - Deployment, production hosting, and secrets management are not documented — severity: medium.

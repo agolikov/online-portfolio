@@ -6,7 +6,7 @@
 - [x] Resume editor — development-only `/edit` page can create, update, toggle, annotate, and delete resume variants.
 - [x] PostgreSQL-backed resume storage — stores resume JSON, generated hash, internal note, cover letter, enabled flag, and creation timestamp.
 - [x] Tech suggestions — backend exposes categorized suggestions for editor autocomplete.
-- [x] AI chat assistant — answers portfolio questions and can call tools to read resume data, update skills/profile fields, and save cover letters.
+- [x] AI chat assistant — answers portfolio questions and can call tools to read resume data, update profile, skills, experience, projects, certificates, education, stories, and cover letters.
 - [x] Persisted chat history — chat messages and assistant tool markers are stored per resume and reloaded in the chat UI.
 - [x] AI action confirmation cards — detected mutating chat intents show an explicit OK/Reject card before the assistant call runs.
 - [x] Cover letter page — `/:hash/cover` supports vacancy text/file input, role-fit metrics, loading, manual editing, saving, and AI generation of cover letters attached to a resume.

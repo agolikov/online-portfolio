@@ -3,7 +3,7 @@
     "type": "function",
     "function": {
       "name": "get_resume",
-      "description": "Read the full resume/portfolio data: profile, skills, experience, projects, education, certificates, and behavioral stories. Call this first before answering factual questions about the person.",
+      "description": "Read the full resume/portfolio data: profile, skills, experience, projects, education, certificates, cover-letter metadata, and behavioral stories. Call this first before answering factual questions or updating anything.",
       "parameters": {
         "type": "object",
         "properties": {},
@@ -14,22 +14,24 @@
   {
     "type": "function",
     "function": {
-      "name": "update_skills",
-      "description": "Replace the entire skills/tech section of the resume. Read existing skills with get_resume before modifying so you don't accidentally drop entries.",
+      "name": "update_profile",
+      "description": "Replace the entire profile section. Read existing data with get_resume first so unchanged fields are preserved.",
       "parameters": {
         "type": "object",
-        "required": ["skills"],
+        "required": ["profile"],
         "properties": {
-          "skills": {
-            "type": "array",
-            "description": "Complete list of skills to set on the resume",
-            "items": {
-              "type": "object",
-              "required": ["name", "category"],
-              "properties": {
-                "name": { "type": "string", "description": "Skill name, e.g. 'Python'" },
-                "category": { "type": "string", "description": "Category, e.g. 'Language'" }
-              }
+          "profile": {
+            "type": "object",
+            "required": ["name", "title", "location", "email", "website", "github", "linkedin", "summary"],
+            "properties": {
+              "name": { "type": "string" },
+              "title": { "type": "string" },
+              "location": { "type": "string" },
+              "email": { "type": "string" },
+              "website": { "type": "string" },
+              "github": { "type": "string" },
+              "linkedin": { "type": "string" },
+              "summary": { "type": "string" }
             }
           }
         }
@@ -57,15 +59,186 @@
   {
     "type": "function",
     "function": {
+      "name": "update_skills",
+      "description": "Replace the entire skills/tech section. Read existing skills with get_resume before modifying so you do not accidentally drop entries.",
+      "parameters": {
+        "type": "object",
+        "required": ["skills"],
+        "properties": {
+          "skills": {
+            "type": "array",
+            "description": "Complete list of skills to set on the resume.",
+            "items": {
+              "type": "object",
+              "required": ["name", "category"],
+              "properties": {
+                "name": { "type": "string" },
+                "category": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "update_experience",
+      "description": "Replace the entire experience section. Read existing experience with get_resume before modifying so unchanged roles are preserved.",
+      "parameters": {
+        "type": "object",
+        "required": ["experience"],
+        "properties": {
+          "experience": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "company", "role", "period", "start", "end", "location", "highlights", "tech"],
+              "properties": {
+                "id": { "type": "string" },
+                "company": { "type": "string" },
+                "role": { "type": "string" },
+                "period": { "type": "string" },
+                "start": { "type": "string" },
+                "end": { "type": "string" },
+                "location": { "type": "string" },
+                "highlights": { "type": "array", "items": { "type": "string" } },
+                "tech": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "update_projects",
+      "description": "Replace the entire projects section. Read existing projects with get_resume before modifying so unchanged projects are preserved.",
+      "parameters": {
+        "type": "object",
+        "required": ["projects"],
+        "properties": {
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "name", "tagline", "description", "link", "tech"],
+              "properties": {
+                "id": { "type": "string" },
+                "name": { "type": "string" },
+                "tagline": { "type": "string" },
+                "description": { "type": "string" },
+                "link": { "type": "string" },
+                "tech": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "update_certificates",
+      "description": "Replace the entire certificates section. Read existing certificates with get_resume before modifying so unchanged certificates are preserved.",
+      "parameters": {
+        "type": "object",
+        "required": ["certificates"],
+        "properties": {
+          "certificates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "name", "issuer", "year"],
+              "properties": {
+                "id": { "type": "string" },
+                "name": { "type": "string" },
+                "issuer": { "type": "string" },
+                "year": { "type": "string" },
+                "credentialId": { "type": "string" },
+                "link": { "type": "string" },
+                "tech": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "update_education",
+      "description": "Replace the entire education section. Read existing education with get_resume before modifying so unchanged entries are preserved.",
+      "parameters": {
+        "type": "object",
+        "required": ["education"],
+        "properties": {
+          "education": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "institution", "degree", "field", "period", "start", "end"],
+              "properties": {
+                "id": { "type": "string" },
+                "institution": { "type": "string" },
+                "shortName": { "type": "string" },
+                "degree": { "type": "string" },
+                "field": { "type": "string" },
+                "period": { "type": "string" },
+                "start": { "type": "string" },
+                "end": { "type": "string" },
+                "thesis": { "type": "string" },
+                "skills": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "update_stories",
+      "description": "Replace the entire behavioral stories section. Read existing stories with get_resume before modifying so unchanged stories are preserved.",
+      "parameters": {
+        "type": "object",
+        "required": ["stories"],
+        "properties": {
+          "stories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "question", "answer"],
+              "properties": {
+                "id": { "type": "string" },
+                "question": { "type": "string" },
+                "answer": { "type": "string" },
+                "public": { "type": "boolean" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
       "name": "save_cover_letter",
-      "description": "Save a fully written cover letter to the database. It will be publicly accessible at /<hash>/cover. Only call this once the full letter is written.",
+      "description": "Save a fully written cover letter to the database and attach it to the portfolio cover-letter metadata. It will be publicly accessible at /<hash>/cover. Only call this once the full letter is written.",
       "parameters": {
         "type": "object",
         "required": ["content"],
         "properties": {
           "content": {
             "type": "string",
-            "description": "The complete cover letter text (plain text, no markdown)."
+            "description": "The complete cover letter text, plain text only."
           }
         }
       }

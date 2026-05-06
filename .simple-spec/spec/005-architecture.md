@@ -17,11 +17,15 @@
 │   ├── ai.ts                     # AI client, prompts, tool execution
 │   ├── db.ts                     # Postgres pool and Drizzle client
 │   ├── index.ts                  # REST API routes
+│   ├── app.ts                    # Shared Express app used by local dev and Vercel
 │   ├── schema.ts                 # Drizzle schema
 │   ├── seed.ts                   # Seed data
 │   └── tools.json                # AI tool schemas
+├── api/                          # Vercel function entrypoints
+│   └── index.ts                  # Exports the Express app for /api/* requests
 ├── .simple-spec/                 # Project specification framework
 ├── package.json                  # Scripts and dependencies
+├── vercel.json                   # Vercel build/output and rewrite configuration
 ├── vite.config.ts                # Frontend dev server and API proxy
 └── drizzle.config.ts             # Drizzle migration config
 ```
@@ -32,13 +36,15 @@
 - **`src/components/ui/`** — shared UI primitives.
 - **`src/lib/resumesApi.ts`** — typed REST client for resume, chat, and cover-letter endpoints.
 - **`src/lib/exportPdf.ts`** — browser-side PDF export.
-- **`server/index.ts`** — Express REST API for resumes, suggestions, chat, and cover letters.
+- **`server/app.ts`** — Express REST API for resumes, suggestions, chat, and cover letters.
+- **`server/index.ts`** — local development entrypoint that mounts Vite middleware and starts the app on port `3004`.
+- **`api/index.ts`** — Vercel function entrypoint that exports the Express app for `/api/*` requests.
 - **`server/ai.ts`** — OpenAI-compatible assistant behavior, tool execution, and cover-letter generation.
 - **`server/schema.ts`** — database tables for resumes, tech suggestions, and chat messages.
 - **`server/migrations/`** — database schema history.
 
 ## Data Flow
-Default portfolio data loads from `src/data/portfolio.json` for `/`. Hash-based pages call `src/lib/resumesApi.ts`, which sends REST requests through Vite's `/api` proxy to Express. Express reads or writes PostgreSQL via Drizzle and returns JSON rows containing resume metadata plus `resumeData`.
+Default portfolio data loads from `src/data/portfolio.json` for `/`. Hash-based pages call `src/lib/resumesApi.ts`, which sends REST requests through Vite's `/api` proxy locally or Vercel rewrites in production. Express reads or writes PostgreSQL via Drizzle and returns JSON rows containing resume metadata plus `resumeData`.
 
 AI chat requests send the visible message thread to `POST /api/chat/:hash`. The frontend shows an OK/Reject card before sending detected mutating intents. The backend persists the latest user message, loads the resume from PostgreSQL, sends the thread and tool schemas to the configured OpenAI-compatible provider, executes tool calls, writes mutations through Drizzle, persists the assistant response, and returns assistant text plus flags indicating changed data or saved cover letters. Chat history reloads from `GET /api/chat/:hash/history`.
 

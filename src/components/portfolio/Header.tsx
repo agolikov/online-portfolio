@@ -14,7 +14,7 @@ export function Header({ profile }: { profile: Profile }) {
     <header className="paper px-4 py-6 md:px-10 md:py-12 animate-fade-in">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-4xl font-semibold leading-tight tracking-tight md:text-5xl">
+          <h1 className="text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
             {profile.name}
           </h1>
           <p className="mt-1.5 text-lg accent-text font-medium md:text-xl">{profile.title}</p>

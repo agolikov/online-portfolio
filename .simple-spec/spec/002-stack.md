@@ -2,7 +2,7 @@
 
 ## Architecture Style
 
-**Unified full-stack repository** — the frontend and backend live in one codebase. In development, Express serves the API and mounts Vite middleware on the same app port. Deployment shape is not finalized.
+**Unified full-stack repository** — the frontend and backend live in one codebase. In development, Express serves the API and mounts Vite middleware on the same app port. On Vercel, the Vite build is served from `dist` and `/api/*` rewrites to a Vercel Function that exports the Express app.
 
 ## Separated Stack
 
@@ -14,7 +14,7 @@
 | Framework | React 18, Vite |
 | Styling | Tailwind CSS, shadcn-style Radix UI components |
 | State management | React Query for app-level API context; local React state for editor/forms |
-| Hosting | TBD |
+| Hosting | Vercel static output from `dist` |
 | Communicates with backend via | REST endpoints under `/api` |
 
 ### Backend
@@ -23,15 +23,15 @@
 |----------|-------|
 | Language | TypeScript |
 | Framework | Express 5 |
-| Runtime / version | Node.js via `tsx`; exact production runtime TBD |
+| Runtime / version | Node.js via `tsx` locally; Vercel Node.js Function in production |
 | Database | PostgreSQL |
 | ORM / query layer | Drizzle ORM and Drizzle Kit migrations |
-| Hosting | TBD |
+| Hosting | Vercel Function under `/api/*` |
 | Auth | None implemented; edit route is dev-only in the frontend |
 
 ### Shared
 
-- **API contract:** REST API implemented in `server/index.ts`; no generated OpenAPI contract yet.
+- **API contract:** REST API implemented in `server/app.ts`; no generated OpenAPI contract yet.
 - **Environment separation:** Frontend uses Vite env vars for PostHog; backend uses `.env` with database and AI provider settings.
 
 ---
@@ -41,6 +41,7 @@
 - Development app server: Express API plus Vite middleware on port `3004`.
 - Standalone Vite configuration also uses port `3004`.
 - Vite proxy target is `http://localhost:3004` for consistency with the single app port.
+- Vercel build command is `pnpm run build`, output directory is `dist`, and rewrites route `/api/*` to `api/index.ts` plus all non-API paths to `index.html`.
 - Database migrations live in `server/migrations/`.
 - Test runner: Vitest with jsdom.
 

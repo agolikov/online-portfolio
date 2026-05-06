@@ -57,6 +57,11 @@ export function ChatPane({ hash, messagesHeight = "22rem" }: Props) {
     const lower = content.toLowerCase();
     if (/(add|update|remove|delete|change).*(skill|skills|tech)/.test(lower)) return "User wants to change skills. Please confirm.";
     if (/(update|change|set).*(profile|name|title|summary|email|linkedin|github|website|location)/.test(lower)) return "User wants to update a profile field. Please confirm.";
+    if (/(add|update|remove|delete|change|rewrite|edit).*(experience|role|job|company)/.test(lower)) return "User wants to change experience entries. Please confirm.";
+    if (/(add|update|remove|delete|change|rewrite|edit).*(project|projects)/.test(lower)) return "User wants to change projects. Please confirm.";
+    if (/(add|update|remove|delete|change|rewrite|edit).*(certificate|certification|certifications)/.test(lower)) return "User wants to change certificates. Please confirm.";
+    if (/(add|update|remove|delete|change|rewrite|edit).*(education|degree|university|school)/.test(lower)) return "User wants to change education entries. Please confirm.";
+    if (/(add|update|remove|delete|change|rewrite|edit|hide|show|disable|enable).*(story|stories|behavioral)/.test(lower)) return "User wants to change stories. Please confirm.";
     if (/(save|generate|write|update|regenerate).*(cover letter)/.test(lower)) return "User wants to create or update a cover letter. Please confirm.";
     return null;
   }
