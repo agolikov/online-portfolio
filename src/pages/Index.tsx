@@ -10,6 +10,7 @@ import { ProjectGrid } from "@/components/portfolio/ProjectGrid";
 import { CertificateList } from "@/components/portfolio/CertificateList";
 import { EducationList } from "@/components/portfolio/EducationList";
 import { ContactForm } from "@/components/portfolio/ContactForm";
+import { StoriesList } from "@/components/portfolio/StoriesList";
 import { exportPortfolioPdf } from "@/lib/exportPdf";
 import { usePortfolio } from "@/lib/portfolioStore";
 import staticData from "@/data/portfolio.json";
@@ -20,8 +21,9 @@ function parseTechParam(s: string | null): string[] {
   return s.split(",").map((t) => t.trim()).filter(Boolean);
 }
 
-function PortfolioBody() {
-  const data: Portfolio = usePortfolio();
+export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {}) {
+  const storeData: Portfolio = usePortfolio();
+  const data = externalData ?? storeData;
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Merge store experience with static tech arrays so year counters are accurate
@@ -75,26 +77,37 @@ function PortfolioBody() {
   }
 
   return (
-    <div className="min-h-screen px-3 py-6 md:px-6 md:py-8">
-      <main className="mx-auto flex max-w-4xl flex-col gap-10">
+    <div className="min-h-screen px-3 py-4 md:px-6 md:py-8">
+      <main className="mx-auto flex max-w-4xl flex-col gap-4 md:gap-8">
         <ControlBar onExport={() => exportPortfolioPdf(data, selected)} />
         <Header profile={data.profile} />
-        <TechFilter
-          tech={allTech}
-          experience={experienceForYears}
-          selected={selected}
-          onToggle={toggle}
-          onClear={() => setSelected([])}
-        />
-        <ExperienceList experience={data.experience} selected={selected} onToggle={toggle} />
-        <ProjectGrid projects={data.projects} selected={selected} onToggle={toggle} />
-        <CertificateList certificates={data.certificates ?? []} selected={selected} />
+        {allTech.length > 0 && (
+          <TechFilter
+            tech={allTech}
+            experience={experienceForYears}
+            selected={selected}
+            onToggle={toggle}
+            onClear={() => setSelected([])}
+          />
+        )}
+        {data.experience.length > 0 && (
+          <ExperienceList experience={data.experience} selected={selected} onToggle={toggle} />
+        )}
+        {data.projects.length > 0 && (
+          <ProjectGrid projects={data.projects} selected={selected} onToggle={toggle} />
+        )}
+        {(data.certificates ?? []).length > 0 && (
+          <CertificateList certificates={data.certificates ?? []} selected={selected} />
+        )}
         {(data.education ?? []).length > 0 && (
           <EducationList education={data.education!} />
         )}
+        {(data.stories ?? []).filter((story) => story.public !== false).length > 0 && (
+          <StoriesList stories={(data.stories ?? []).filter((story) => story.public !== false)} />
+        )}
         <ContactForm profile={data.profile} />
 
-        <footer className="py-6 text-center text-xs uppercase tracking-widest text-muted-foreground">
+        <footer className="py-4 text-center text-xs uppercase tracking-widest text-muted-foreground">
           End of document · {data.profile.name}
         </footer>
       </main>
@@ -102,9 +115,9 @@ function PortfolioBody() {
   );
 }
 
-const Index = () => (
+const Index = ({ externalData }: { externalData?: Portfolio } = {}) => (
   <ThemeProvider>
-    <PortfolioBody />
+    <PortfolioBody externalData={externalData} />
   </ThemeProvider>
 );
 

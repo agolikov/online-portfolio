@@ -1,0 +1,74 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "get_resume",
+      "description": "Read the full resume/portfolio data: profile, skills, experience, projects, education, certificates, and behavioral stories. Call this first before answering factual questions about the person.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "update_skills",
+      "description": "Replace the entire skills/tech section of the resume. Read existing skills with get_resume before modifying so you don't accidentally drop entries.",
+      "parameters": {
+        "type": "object",
+        "required": ["skills"],
+        "properties": {
+          "skills": {
+            "type": "array",
+            "description": "Complete list of skills to set on the resume",
+            "items": {
+              "type": "object",
+              "required": ["name", "category"],
+              "properties": {
+                "name": { "type": "string", "description": "Skill name, e.g. 'Python'" },
+                "category": { "type": "string", "description": "Category, e.g. 'Language'" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "update_profile_field",
+      "description": "Update a single text field in the profile section of the resume.",
+      "parameters": {
+        "type": "object",
+        "required": ["field", "value"],
+        "properties": {
+          "field": {
+            "type": "string",
+            "enum": ["name", "title", "location", "email", "website", "github", "linkedin", "summary"]
+          },
+          "value": { "type": "string" }
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "save_cover_letter",
+      "description": "Save a fully written cover letter to the database. It will be publicly accessible at /<hash>/cover. Only call this once the full letter is written.",
+      "parameters": {
+        "type": "object",
+        "required": ["content"],
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "The complete cover letter text (plain text, no markdown)."
+          }
+        }
+      }
+    }
+  }
+]

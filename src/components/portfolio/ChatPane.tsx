@@ -1,0 +1,225 @@
+import { useEffect, useRef, useState } from "react";
+import { Send, Bot, Check, X } from "lucide-react";
+import { resumesApi, type ChatMessage } from "@/lib/resumesApi";
+
+interface Message extends ChatMessage {
+  toolsUsed?: string[];
+}
+
+interface PendingAction {
+  description: string;
+  messages: Message[];
+}
+
+const SUGGESTIONS = [
+  "Summarise this resume in 3 bullet points.",
+  "What are the strongest technical skills here?",
+  "Generate a cover letter for a senior engineering role.",
+  "Add Python and FastAPI to the skills.",
+  "Write a weakness I could honestly mention in an interview.",
+  "Answer: Tell me about a time you led a difficult project.",
+];
+
+interface Props {
+  hash: string;
+  /** Optional fixed height for the messages area (default: 22rem) */
+  messagesHeight?: string;
+}
+
+export function ChatPane({ hash, messagesHeight = "22rem" }: Props) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    resumesApi.getChatHistory(hash)
+      .then((history) => {
+        if (!mounted) return;
+        setMessages(history.map((m) => ({
+          role: m.role,
+          content: m.content,
+          toolsUsed: m.toolsUsed,
+        })));
+      })
+      .catch(() => undefined);
+    return () => { mounted = false; };
+  }, [hash]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  function detectAction(content: string): string | null {
+    const lower = content.toLowerCase();
+    if (/(add|update|remove|delete|change).*(skill|skills|tech)/.test(lower)) return "User wants to change skills. Please confirm.";
+    if (/(update|change|set).*(profile|name|title|summary|email|linkedin|github|website|location)/.test(lower)) return "User wants to update a profile field. Please confirm.";
+    if (/(save|generate|write|update|regenerate).*(cover letter)/.test(lower)) return "User wants to create or update a cover letter. Please confirm.";
+    return null;
+  }
+
+  async function runChat(next: Message[]) {
+    setLoading(true);
+    try {
+      const apiMessages = next.map(({ role, content }) => ({ role, content }));
+      const res = await resumesApi.chat(hash, apiMessages);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: res.content, toolsUsed: res.toolsUsed },
+      ]);
+      if (res.dataChanged || res.coverLetterSaved) {
+        window.dispatchEvent(new CustomEvent("resume-data-changed", { detail: { hash } }));
+      }
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Something went wrong. Please try again." },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function send(text?: string) {
+    const content = (text ?? input).trim();
+    if (!content || loading) return;
+    setInput("");
+
+    const userMsg: Message = { role: "user", content };
+    const next = [...messages, userMsg];
+    setMessages(next);
+
+    const action = detectAction(content);
+    if (action) {
+      setPendingAction({ description: action, messages: next });
+      return;
+    }
+    await runChat(next);
+  }
+
+  function rejectAction() {
+    setPendingAction(null);
+    setMessages((prev) => [...prev, { role: "assistant", content: "Rejected. I did not run that action." }]);
+  }
+
+  return (
+    <div className="flex flex-col border border-border rounded-md overflow-hidden mt-6">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border shrink-0">
+        <Bot size={14} className="accent-text shrink-0" />
+        <span className="text-sm font-medium flex-1">AI Assistant</span>
+        <span className="font-mono text-xs text-muted-foreground">{hash}</span>
+      </div>
+
+      {/* Messages */}
+      <div
+        className="overflow-y-auto px-4 py-3 space-y-3"
+        style={{ height: messagesHeight }}
+      >
+        {messages.length === 0 && (
+          <div className="pt-2 space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Ask anything about this resume, or try a suggestion:
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => send(s)}
+                  className="chip text-xs text-left"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {messages.map((m, i) => (
+          <div key={i} className={`flex flex-col gap-1 ${m.role === "user" ? "items-end" : "items-start"}`}>
+            <div
+              className={`rounded-xl px-3 py-2 text-sm leading-relaxed max-w-[88%] whitespace-pre-wrap ${
+                m.role === "user"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-foreground"
+              }`}
+            >
+              {m.content}
+            </div>
+            {m.toolsUsed && m.toolsUsed.length > 0 && (
+              <div className="flex flex-wrap gap-1 max-w-[88%]">
+                {[...new Set(m.toolsUsed)].map((t) => (
+                  <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted/80 text-muted-foreground font-mono">
+                    ⚙ {t.replace(/_/g, " ")}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+
+        {pendingAction && (
+          <div className="rounded-md border border-border bg-background px-3 py-3 max-w-[88%]">
+            <p className="text-sm font-medium">Action: {pendingAction.description}</p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                className="chip flex items-center gap-1.5"
+                data-active="true"
+                onClick={() => {
+                  const action = pendingAction;
+                  setPendingAction(null);
+                  void runChat(action.messages);
+                }}
+              >
+                <Check size={12} /> OK
+              </button>
+              <button type="button" className="chip flex items-center gap-1.5" onClick={rejectAction}>
+                <X size={12} /> Reject
+              </button>
+            </div>
+          </div>
+        )}
+
+        {loading && (
+          <div className="flex items-start">
+            <div className="bg-muted rounded-xl px-3 py-2 text-sm text-muted-foreground flex gap-1">
+              <span className="animate-bounce" style={{ animationDelay: "0ms" }}>●</span>
+              <span className="animate-bounce" style={{ animationDelay: "150ms" }}>●</span>
+              <span className="animate-bounce" style={{ animationDelay: "300ms" }}>●</span>
+            </div>
+          </div>
+        )}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div className="border-t border-border px-3 py-2.5 flex gap-2 bg-background shrink-0">
+        <input
+          ref={inputRef}
+          className="flex-1 bg-transparent border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-foreground placeholder:text-muted-foreground disabled:opacity-50"
+          placeholder="Ask anything…"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+          disabled={loading}
+        />
+        <button
+          type="button"
+          onClick={() => send()}
+          disabled={loading || !input.trim()}
+          className="chip h-8 w-8 flex items-center justify-center shrink-0 disabled:opacity-40"
+          data-active="true"
+          aria-label="Send"
+        >
+          <Send size={13} />
+        </button>
+      </div>
+    </div>
+  );
+}

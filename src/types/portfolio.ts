@@ -54,6 +54,32 @@ export interface Education {
   thesis?: string;
   skills?: string[];
 }
+export interface Story {
+  id: string;
+  question: string;
+  answer: string;
+  public?: boolean;
+}
+
+export interface CoverLetterMetric {
+  id: "techStack" | "experience" | "leadership" | "overall";
+  label: string;
+  score: number;
+  summary: string;
+}
+
+export interface PortfolioCoverLetter {
+  content: string;
+  vacancyText?: string;
+  metrics?: CoverLetterMetric[];
+  generatedAt?: string;
+  updatedAt: string;
+}
+
+export interface PortfolioCoverLetters {
+  current?: PortfolioCoverLetter;
+}
+
 export interface Portfolio {
   profile: Profile;
   tech: Tech[];
@@ -61,4 +87,6 @@ export interface Portfolio {
   projects: Project[];
   certificates: Certificate[];
   education?: Education[];
+  stories?: Story[];
+  coverLetters?: PortfolioCoverLetters;
 }

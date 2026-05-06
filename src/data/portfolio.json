@@ -1,396 +1,179 @@
 {
   "profile": {
-    "name": "Arivyn Lessa",
-    "title": "Lead Product Engineer",
+    "name": "Lorem Ipsum",
+    "title": "Senior Software Engineer · Sample Resume",
     "location": "San Francisco, CA",
-    "email": "",
-    "website": "",
-    "github": "github.com",
-    "linkedin": "linkedin.com",
-    "summary": "Lead product engineer with 9+ years building user-facing products from scratch. Passionate about turning complex problems into intuitive interfaces. Experienced driving cross-functional teams, conducting user research, and shipping products that millions use daily. Specializing in scalable frontend architectures and data visualization."
+    "email": "lorem.ipsum@example.com",
+    "website": "example.com",
+    "github": "github.com/loremipsum",
+    "linkedin": "linkedin.com/in/loremipsum",
+    "summary": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. This is a sample portfolio — replace this data via the Resumes tab."
   },
   "tech": [
-    {
-      "name": "JavaScript",
-      "category": "Language"
-    },
-    {
-      "name": "TypeScript",
-      "category": "Language"
-    },
-    {
-      "name": "Python",
-      "category": "Language"
-    },
-    {
-      "name": "Java",
-      "category": "Language"
-    },
-    {
-      "name": "React",
-      "category": "Frontend"
-    },
-    {
-      "name": "Vue.js",
-      "category": "Frontend"
-    },
-    {
-      "name": "Next.js",
-      "category": "Frontend"
-    },
-    {
-      "name": "Node.js",
-      "category": "Backend"
-    },
-    {
-      "name": "Express",
-      "category": "Backend"
-    },
-    {
-      "name": "GraphQL",
-      "category": "Protocol"
-    },
-    {
-      "name": "Firebase",
-      "category": "Backend"
-    },
-    {
-      "name": "PostgreSQL",
-      "category": "Database"
-    },
-    {
-      "name": "MongoDB",
-      "category": "Database"
-    },
-    {
-      "name": "Redis",
-      "category": "Database"
-    },
-    {
-      "name": "AWS",
-      "category": "Cloud"
-    },
-    {
-      "name": "Google Cloud",
-      "category": "Cloud"
-    },
-    {
-      "name": "Docker",
-      "category": "Infra"
-    },
-    {
-      "name": "Kubernetes",
-      "category": "Infra"
-    },
-    {
-      "name": "Figma",
-      "category": "Design"
-    },
-    {
-      "name": "D3.js",
-      "category": "Frontend"
-    },
-    {
-      "name": "Tailwind CSS",
-      "category": "Frontend"
-    },
-    {
-      "name": "Jest",
-      "category": "Testing"
-    },
-    {
-      "name": "Cypress",
-      "category": "Testing"
-    },
-    {
-      "name": "Git",
-      "category": "Tool"
-    },
-    {
-      "name": "Jira",
-      "category": "Tool"
-    },
-    {
-      "name": "Stripe API",
-      "category": "API"
-    },
-    {
-      "name": "REST API",
-      "category": "Protocol"
-    },
-    {
-      "name": "Datadog",
-      "category": "Observability"
-    },
-    {
-      "name": "Analytics",
-      "category": "Observability"
-    },
-    {
-      "name": "A/B Testing",
-      "category": "Product"
-    },
-    {
-      "name": "UX Design",
-      "category": "Design"
-    },
-    {
-      "name": "Accessibility",
-      "category": "Frontend"
-    },
-    {
-      "name": "Web Performance",
-      "category": "Frontend"
-    }
+    { "name": "JavaScript", "category": "Language" },
+    { "name": "TypeScript", "category": "Language" },
+    { "name": "Python", "category": "Language" },
+    { "name": "Go", "category": "Language" },
+    { "name": "React", "category": "Frontend" },
+    { "name": "Vue.js", "category": "Frontend" },
+    { "name": "Next.js", "category": "Frontend" },
+    { "name": "Node.js", "category": "Backend" },
+    { "name": "Express", "category": "Backend" },
+    { "name": "GraphQL", "category": "Protocol" },
+    { "name": "PostgreSQL", "category": "Database" },
+    { "name": "Redis", "category": "Database" },
+    { "name": "MongoDB", "category": "Database" },
+    { "name": "AWS", "category": "Cloud" },
+    { "name": "Docker", "category": "Infra" },
+    { "name": "Kubernetes", "category": "Infra" },
+    { "name": "Tailwind CSS", "category": "Frontend" },
+    { "name": "Jest", "category": "Testing" }
   ],
   "experience": [
     {
       "id": "exp-5",
-      "company": "Innovate Labs",
-      "role": "Lead Product Engineer",
-      "period": "Mar 2022 — Present",
-      "start": "2022-03",
+      "company": "Acme Corporation",
+      "role": "Senior Software Engineer",
+      "period": "Jan 2022 — Present",
+      "start": "2022-01",
       "end": "present",
-      "location": "Remote, California",
+      "location": "San Francisco, CA",
       "highlights": [
-        "Led the end-to-end redesign of the core analytics dashboard, improving user engagement by 45% through research-driven UX improvements",
-        "Architected a component library serving 150+ developers across 5 teams, reducing design inconsistencies and accelerating feature development",
-        "Mentored 8 junior engineers on full-stack development, performance optimization, and product thinking, 3 of whom were promoted"
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit — sed do eiusmod tempor incididunt ut labore et dolore magna aliqua, improving key metrics by 45%",
+        "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat across 5 cross-functional teams",
+        "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur for 8 direct reports"
       ],
-      "tech": [
-        "React",
-        "TypeScript",
-        "Next.js",
-        "GraphQL",
-        "PostgreSQL",
-        "Node.js",
-        "AWS",
-        "Docker",
-        "Figma",
-        "D3.js",
-        "Tailwind CSS",
-        "Jest",
-        "Datadog"
-      ]
+      "tech": ["React", "TypeScript", "Next.js", "GraphQL", "PostgreSQL", "Node.js", "AWS", "Docker", "Tailwind CSS", "Jest"]
     },
     {
       "id": "exp-4",
-      "company": "StreamFlow",
-      "role": "Senior Frontend Engineer",
-      "period": "Jul 2020 — Feb 2022",
-      "start": "2020-07",
-      "end": "2022-02",
-      "location": "San Francisco, CA",
+      "company": "Lorem Technologies",
+      "role": "Software Engineer",
+      "period": "Mar 2020 — Dec 2021",
+      "start": "2020-03",
+      "end": "2021-12",
+      "location": "Remote",
       "highlights": [
-        "Owned the payments integration for a fintech platform serving 500K+ users, reducing payment failures from 3.2% to 0.8%",
-        "Rebuilt video streaming UI using React Hooks, cutting bundle size by 35% and improving rendering performance by 2.1x",
-        "Drove adoption of TypeScript across the frontend codebase, improving code quality and reducing runtime bugs by 40%"
+        "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum serving 500K+ users",
+        "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit reducing latency by 35%",
+        "Neque porro quisquam est qui dolorem ipsum quia dolor sit amet, consectetur adipisci velit improving reliability to 99.9%"
       ],
-      "tech": [
-        "React",
-        "TypeScript",
-        "Node.js",
-        "Stripe API",
-        "WebRTC",
-        "GraphQL",
-        "PostgreSQL",
-        "Redis",
-        "Cypress",
-        "Google Cloud",
-        "Jest"
-      ]
+      "tech": ["React", "TypeScript", "Node.js", "GraphQL", "PostgreSQL", "Redis", "AWS", "Jest"]
     },
     {
       "id": "exp-3",
-      "company": "DesignScale",
-      "role": "Full Stack Engineer",
-      "period": "Feb 2019 — Jun 2020",
-      "start": "2019-02",
-      "end": "2020-06",
-      "location": "Oakland, CA",
+      "company": "Ipsum Systems",
+      "role": "Full Stack Developer",
+      "period": "Jun 2018 — Feb 2020",
+      "start": "2018-06",
+      "end": "2020-02",
+      "location": "New York, NY",
       "highlights": [
-        "Built a real-time collaborative design tool handling 1M+ concurrent operations per day with WebSocket synchronization",
-        "Implemented automated testing suite reducing bug escape rate by 55% and increasing deployment confidence",
-        "Created interactive data visualization dashboards using D3.js and custom WebGL rendering for large datasets"
+        "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur handling 1M+ daily operations",
+        "At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti",
+        "Nam libero tempore cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat"
       ],
-      "tech": [
-        "React",
-        "Vue.js",
-        "Node.js",
-        "Express",
-        "MongoDB",
-        "WebSocket",
-        "D3.js",
-        "WebGL",
-        "Docker",
-        "Kubernetes",
-        "Cypress",
-        "Jest"
-      ]
+      "tech": ["Vue.js", "Node.js", "Express", "MongoDB", "Docker", "Kubernetes", "Jest"]
     },
     {
       "id": "exp-2",
-      "company": "TechVenture Capital",
-      "role": "Frontend Engineer",
-      "period": "Jun 2017 — Jan 2019",
-      "start": "2017-06",
-      "end": "2019-01",
-      "location": "San Jose, CA",
+      "company": "Dolor & Associates",
+      "role": "Junior Developer",
+      "period": "Aug 2016 — May 2018",
+      "start": "2016-08",
+      "end": "2018-05",
+      "location": "Austin, TX",
       "highlights": [
-        "Developed investment portfolio dashboard used by 50+ fund managers, processing real-time market data",
-        "Implemented accessibility improvements achieving WCAG 2.1 AA compliance across 200+ components",
-        "Optimized critical rendering path reducing page load time from 4.2s to 1.8s through code splitting and lazy loading"
+        "Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae",
+        "Itaque earum rerum hic tenetur a sapiente delectus ut aut reiciendis voluptatibus maiores alias consequatur",
+        "Similique sunt in culpa qui officia deserunt mollitia animi id est laborum et dolorum fuga"
       ],
-      "tech": [
-        "React",
-        "JavaScript",
-        "Redux",
-        "Node.js",
-        "Express",
-        "PostgreSQL",
-        "AWS",
-        "Jest",
-        "Git",
-        "Jira"
-      ]
-    },
-    {
-      "id": "exp-1",
-      "company": "StartupXYZ",
-      "role": "Junior Frontend Developer",
-      "period": "Jan 2015 — May 2017",
-      "start": "2015-01",
-      "end": "2017-05",
-      "location": "Mountain View, CA",
-      "highlights": [
-        "Built interactive data entry forms processing 100K+ daily submissions with real-time validation",
-        "Transitioned legacy jQuery codebase to React, improving code maintainability and developer productivity",
-        "Collaborated with designers to implement responsive designs supporting mobile, tablet, and desktop experiences"
-      ],
-      "tech": [
-        "JavaScript",
-        "React",
-        "jQuery",
-        "HTML5",
-        "CSS3",
-        "Node.js",
-        "MongoDB",
-        "Firebase",
-        "Git"
-      ]
+      "tech": ["JavaScript", "React", "Node.js", "Express", "PostgreSQL", "Jest"]
     }
   ],
   "projects": [
     {
       "id": "prj-1",
-      "name": "DataViz Studio",
-      "tagline": "Interactive data visualization toolkit",
-      "description": "Open-source library for creating custom interactive visualizations. Built on D3.js with React components for seamless integration. Used by 5K+ developers and downloaded 500K+ times monthly.",
-      "link": "github.com/jesschen/dataviz-studio",
-      "tech": [
-        "React",
-        "D3.js",
-        "TypeScript",
-        "Node.js",
-        "Jest",
-        "Git"
-      ]
+      "name": "Lorem Studio",
+      "tagline": "Sample open-source project",
+      "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Used by 5K+ developers and downloaded 500K+ times monthly.",
+      "link": "github.com/loremipsum/lorem-studio",
+      "tech": ["React", "TypeScript", "Node.js", "Jest"]
     },
     {
       "id": "prj-2",
-      "name": "FormFlow",
-      "tagline": "Form validation and management framework",
-      "description": "Lightweight TypeScript library for building complex forms with validation, error handling, and real-time feedback. Supports React and Vue with zero dependencies.",
-      "link": "github.com/jesschen/formflow",
-      "tech": [
-        "TypeScript",
-        "React",
-        "Vue.js",
-        "Jest",
-        "Git"
-      ]
+      "name": "Ipsum CLI",
+      "tagline": "Sample command-line tool",
+      "description": "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Lightweight TypeScript tool with zero dependencies.",
+      "link": "github.com/loremipsum/ipsum-cli",
+      "tech": ["TypeScript", "Node.js", "Jest"]
     },
     {
       "id": "prj-3",
-      "name": "Accessibility Checker",
-      "tagline": "Automated WCAG compliance testing tool",
-      "description": "CLI and browser extension for automated accessibility auditing. Identifies WCAG violations and suggests fixes with examples. Integrated into CI/CD pipelines for 200+ teams.",
-      "link": "github.com/jesschen/a11y-checker",
-      "tech": [
-        "Node.js",
-        "Python",
-        "Jest",
-        "Docker",
-        "Git",
-        "CLI"
-      ]
+      "name": "Dolor Dashboard",
+      "tagline": "Sample analytics dashboard",
+      "description": "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Real-time data visualization for teams of all sizes.",
+      "link": "github.com/loremipsum/dolor-dashboard",
+      "tech": ["React", "TypeScript", "GraphQL", "PostgreSQL"]
     }
   ],
   "education": [
     {
       "id": "edu-1",
-      "institution": "University of California, Berkeley",
-      "shortName": "UC Berkeley",
-      "degree": "Bachelor's Degree",
-      "field": "Computer Science with focus on Human-Computer Interaction",
-      "period": "Sep 2010 — May 2014",
-      "start": "2010-09",
-      "end": "2014-05",
-      "thesis": "Designing accessible interfaces for cognitive accessibility",
-      "skills": [
-        "UX Design",
-        "Algorithms & Data Structures",
-        "Web Development",
-        "Human-Computer Interaction"
-      ]
+      "institution": "University of Lorem Ipsum",
+      "shortName": "ULI",
+      "degree": "Bachelor of Science",
+      "field": "Computer Science",
+      "period": "Sep 2012 — May 2016",
+      "start": "2012-09",
+      "end": "2016-05",
+      "thesis": "Lorem ipsum dolor sit amet, consectetur adipiscing elit",
+      "skills": ["Algorithms & Data Structures", "Operating Systems", "Software Engineering", "Databases"]
+    }
+  ],
+  "stories": [
+    {
+      "id": "story-1",
+      "question": "Tell me about a time you led a difficult project.",
+      "answer": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Situation: sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Task: ut enim ad minim veniam, quis nostrud exercitation ullamco. Action: duis aute irure dolor in reprehenderit in voluptate velit esse cillum. Result: excepteur sint occaecat cupidatat non proident, reducing time-to-delivery by 30%."
+    },
+    {
+      "id": "story-2",
+      "question": "Describe a situation where you disagreed with a colleague. How did you handle it?",
+      "answer": "Situation: at vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis. Task: nemo enim ipsam voluptatem quia voluptas sit aspernatur. Action: neque porro quisquam est qui dolorem ipsum quia dolor sit amet. Result: ut labore et dolore magnam aliquam quaerat voluptatem, reaching a consensus that improved the architecture."
+    },
+    {
+      "id": "story-3",
+      "question": "Give an example of a time you had to meet a tight deadline.",
+      "answer": "Situation: temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet. Task: itaque earum rerum hic tenetur a sapiente delectus. Action: quis autem vel eum iure reprehenderit qui in ea voluptate velit. Result: shipped on time with zero critical bugs and received positive feedback from stakeholders."
     }
   ],
   "certificates": [
     {
       "id": "cert-1",
-      "name": "Advanced React Patterns",
-      "issuer": "Frontend Masters",
-      "year": "2023",
-      "link": "https://frontendmasters.com",
-      "tech": [
-        "React",
-        "TypeScript"
-      ]
+      "name": "Lorem Ipsum Certification",
+      "issuer": "Sample Institute",
+      "year": "2024",
+      "credentialId": "LOREM-001",
+      "link": "https://example.com",
+      "tech": ["React", "TypeScript"]
     },
     {
       "id": "cert-2",
-      "name": "Web Performance Optimization",
-      "issuer": "Google Cloud Skills Boost",
+      "name": "Dolor Sit Amet Professional",
+      "issuer": "Ipsum Academy",
       "year": "2023",
-      "credentialId": "a7f82b4c",
-      "link": "https://www.cloudskillsboost.google.com",
-      "tech": [
-        "Web Performance",
-        "Google Cloud"
-      ]
+      "credentialId": "DOLOR-002",
+      "link": "https://example.com",
+      "tech": ["Node.js", "PostgreSQL"]
     },
     {
       "id": "cert-3",
-      "name": "Accessibility for Web Developers",
-      "issuer": "A11ycasts by Google Chrome",
+      "name": "Consectetur Adipiscing Expert",
+      "issuer": "Amet Certifications",
       "year": "2022",
-      "link": "https://www.youtube.com/playlist?list=PLNYkxOF6rcICWx0C9Xc-RgEzwLvePng7V",
-      "tech": [
-        "Accessibility",
-        "HTML5",
-        "CSS3"
-      ]
-    },
-    {
-      "id": "cert-4",
-      "name": "GraphQL Fundamentals",
-      "issuer": "Apollo GraphQL",
-      "year": "2022",
-      "link": "https://www.apollographql.com",
-      "tech": [
-        "GraphQL",
-        "Node.js"
-      ]
+      "link": "https://example.com",
+      "tech": ["AWS", "Docker", "Kubernetes"]
     }
   ]
 }

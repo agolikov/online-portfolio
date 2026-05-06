@@ -3,8 +3,8 @@ import { GraduationCap } from "lucide-react";
 
 export function EducationList({ education }: { education: Education[] }) {
   return (
-    <section className="paper px-6 py-6 md:px-10 animate-fade-in">
-      <h2 className="section-title mb-6">Education</h2>
+    <section className="paper px-4 py-4 md:px-10 md:py-6 animate-fade-in">
+      <h2 className="section-title mb-4 md:mb-6">Education</h2>
       <ul className="space-y-0">
         {education.map((e) => (
           <li key={e.id} className="rule pt-6 first:border-t-0 first:pt-0 flex gap-4">

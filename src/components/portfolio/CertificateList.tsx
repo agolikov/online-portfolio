@@ -13,8 +13,8 @@ export function CertificateList({ certificates, selected }: Props) {
       : certificates.filter((c) => c.tech?.some((t) => selected.includes(t)));
 
   return (
-    <section className="paper px-6 py-6 md:px-10 animate-fade-in">
-      <div className="mb-6 flex items-end justify-between">
+    <section className="paper px-4 py-4 md:px-10 md:py-6 animate-fade-in">
+      <div className="mb-4 md:mb-6 flex items-end justify-between">
         <h2 className="section-title">Certificates</h2>
         <span className="text-xs uppercase tracking-widest text-muted-foreground">
           {filtered.length}/{certificates.length} matching
