@@ -2,6 +2,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-05-06 | Updated cover-letter generation to produce shorter, more candid one-minute letters, include honest weak-fit points, and support an optional hiring manager or recruiter name in the greeting. |
 | 2026-05-06 | Added default resume support for `/`, including `resumes.isDefault`, API endpoints to set/clear/default-load resumes, editor controls, and last-loaded resume memory in edit mode. |
 | 2026-05-06 | Added chat clear-history UI/API, richer tool-intent confirmation cards with inferred parameters, editor cover-letter generation tab, public cover-letter popup, generated candidate summaries, and Docker support with external database configuration. |
 | 2026-05-06 | Added AI tools for all portfolio sections: profile, skills, experience, projects, certificates, education, stories, and cover letters, plus matching chat confirmation detection for the new mutating sections. |

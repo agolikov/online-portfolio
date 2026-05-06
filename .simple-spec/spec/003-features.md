@@ -12,7 +12,7 @@
 - [x] AI action confirmation cards — detected mutating chat intents show an explicit OK/Reject card before the assistant call runs.
 - [x] Chat management — chat history is persisted per resume and can be cleared from the chat UI.
 - [x] Cover letter page — `/:hash/cover` supports vacancy text/file input, role-fit metrics, loading, manual editing, saving, and AI generation of cover letters attached to a resume.
-- [x] Cover letter editor tab — `/edit` includes a cover-letter tab that accepts job description text, generates a letter plus candidate summary and role-fit metrics, and stores the result in the portfolio JSON.
+- [x] Cover letter editor tab — `/edit` includes a cover-letter tab that accepts job description text and optional hiring manager/recruiter name, generates a short candid letter plus candidate summary and role-fit metrics, and stores the result in the portfolio JSON.
 - [x] Cover letter popup — public/home portfolio views show a `Show Cover Letter` button when generated cover-letter metadata exists.
 - [x] PostHog analytics — captures contact form submission, PDF export, GitHub click, theme/accent changes, tech filters, and project clicks.
 - [x] PDF export — exports the rendered portfolio/resume view to PDF with a visible `Download PDF` control label.

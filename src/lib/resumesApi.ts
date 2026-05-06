@@ -31,6 +31,7 @@ export interface ChatHistoryMessage extends ChatMessage {
 export interface CoverLetterResponse {
   coverLetter: string;
   summary: string;
+  recipientName?: string;
   metrics: CoverLetterMetric[];
   vacancyText?: string;
 }
@@ -123,17 +124,17 @@ export const resumesApi = {
   getCoverLetter: (hash: string) =>
     req<CoverLetterResponse>(`/resumes/${hash}/cover`),
 
-  saveCoverLetter: (hash: string, coverLetter: string, vacancyText?: string) =>
+  saveCoverLetter: (hash: string, coverLetter: string, vacancyText?: string, recipientName?: string) =>
     req<CoverLetterResponse>(`/resumes/${hash}/cover`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ coverLetter, vacancyText }),
+      body: JSON.stringify({ coverLetter, vacancyText, recipientName }),
     }),
 
-  generateCoverLetter: (hash: string, vacancyText?: string) =>
+  generateCoverLetter: (hash: string, vacancyText?: string, recipientName?: string) =>
     req<CoverLetterResponse>(`/resumes/${hash}/cover/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ vacancyText }),
+      body: JSON.stringify({ vacancyText, recipientName }),
     }),
 };

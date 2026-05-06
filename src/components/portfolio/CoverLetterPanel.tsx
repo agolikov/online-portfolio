@@ -30,6 +30,11 @@ export function CoverLetterPanel({ coverLetter }: { coverLetter: PortfolioCoverL
         <div className="rounded-md border border-border px-4 py-3">
           <h3 className="text-sm font-semibold uppercase tracking-widest">Short Summary</h3>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{coverLetter.summary}</p>
+          {coverLetter.recipientName && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Addressed to {coverLetter.recipientName}
+            </p>
+          )}
         </div>
       )}
 

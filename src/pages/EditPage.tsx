@@ -524,17 +524,19 @@ function CoverLetterTab({
   onChange: (data: Portfolio) => void;
 }) {
   const [jobDescription, setJobDescription] = useState(data.coverLetters?.current?.vacancyText ?? "");
+  const [recipientName, setRecipientName] = useState(data.coverLetters?.current?.recipientName ?? "");
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     setJobDescription(data.coverLetters?.current?.vacancyText ?? "");
-  }, [data.coverLetters?.current?.vacancyText]);
+    setRecipientName(data.coverLetters?.current?.recipientName ?? "");
+  }, [data.coverLetters?.current?.vacancyText, data.coverLetters?.current?.recipientName]);
 
   async function generate() {
     if (!loadedHash || !jobDescription.trim()) return;
     setGenerating(true);
     try {
-      const result = await resumesApi.generateCoverLetter(loadedHash, jobDescription);
+      const result = await resumesApi.generateCoverLetter(loadedHash, jobDescription, recipientName);
       onChange({
         ...data,
         coverLetters: {
@@ -542,6 +544,7 @@ function CoverLetterTab({
           current: {
             content: result.coverLetter,
             summary: result.summary,
+            recipientName: result.recipientName ?? recipientName,
             vacancyText: result.vacancyText ?? jobDescription,
             metrics: result.metrics,
             generatedAt: new Date().toISOString(),
@@ -576,6 +579,15 @@ function CoverLetterTab({
           value={jobDescription}
           onChange={(e) => setJobDescription(e.target.value)}
           placeholder="Paste the vacancy text here..."
+        />
+      </div>
+      <div>
+        <label className={labelCls}>Hiring manager or recruiter name</label>
+        <input
+          className={inputCls}
+          value={recipientName}
+          onChange={(e) => setRecipientName(e.target.value)}
+          placeholder="Optional, e.g. Anna Kowalska"
         />
       </div>
       <button

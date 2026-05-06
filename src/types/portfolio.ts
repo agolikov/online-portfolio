@@ -71,6 +71,7 @@ export interface CoverLetterMetric {
 export interface PortfolioCoverLetter {
   content: string;
   summary?: string;
+  recipientName?: string;
   vacancyText?: string;
   metrics?: CoverLetterMetric[];
   generatedAt?: string;

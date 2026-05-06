@@ -315,6 +315,7 @@ app.get("/api/resumes/:hash/cover", async (req, res) => {
     res.json({
       coverLetter: row.coverLetter,
       summary: portfolio.coverLetters?.current?.summary ?? "",
+      recipientName: portfolio.coverLetters?.current?.recipientName ?? "",
       metrics: portfolio.coverLetters?.current?.metrics ?? [],
       vacancyText: portfolio.coverLetters?.current?.vacancyText ?? "",
     });
@@ -327,7 +328,7 @@ app.get("/api/resumes/:hash/cover", async (req, res) => {
 // Save / update cover letter manually
 app.put("/api/resumes/:hash/cover", async (req, res) => {
   try {
-    const { coverLetter, vacancyText } = req.body as { coverLetter: string; vacancyText?: string };
+    const { coverLetter, vacancyText, recipientName } = req.body as { coverLetter: string; vacancyText?: string; recipientName?: string };
     const [current] = await db
       .select({ resumeData: resumes.resumeData })
       .from(resumes)
@@ -337,7 +338,8 @@ app.put("/api/resumes/:hash/cover", async (req, res) => {
     const portfolio = current.resumeData as Portfolio;
     const nextVacancyText = vacancyText ?? portfolio.coverLetters?.current?.vacancyText ?? "";
     const metrics = portfolio.coverLetters?.current?.metrics ?? scoreRoleFit(portfolio, nextVacancyText);
-    const updatedPortfolio = attachCoverLetter(portfolio, coverLetter ?? "", nextVacancyText, metrics, false);
+    const nextRecipientName = recipientName ?? portfolio.coverLetters?.current?.recipientName ?? "";
+    const updatedPortfolio = attachCoverLetter(portfolio, coverLetter ?? "", nextVacancyText, metrics, false, undefined, nextRecipientName);
     const [row] = await db
       .update(resumes)
       .set({ coverLetter: coverLetter ?? "", resumeData: updatedPortfolio })
@@ -347,6 +349,7 @@ app.put("/api/resumes/:hash/cover", async (req, res) => {
     res.json({
       coverLetter: row.coverLetter,
       summary: updatedPortfolio.coverLetters?.current?.summary ?? "",
+      recipientName: nextRecipientName,
       metrics,
       vacancyText: nextVacancyText,
     });
@@ -359,8 +362,8 @@ app.put("/api/resumes/:hash/cover", async (req, res) => {
 // Generate cover letter via AI (or fallback template)
 app.post("/api/resumes/:hash/cover/generate", async (req, res) => {
   try {
-    const { vacancyText } = req.body as { vacancyText?: string };
-    const result = await generateCoverLetter(req.params.hash, vacancyText ?? "");
+    const { vacancyText, recipientName } = req.body as { vacancyText?: string; recipientName?: string };
+    const result = await generateCoverLetter(req.params.hash, vacancyText ?? "", recipientName ?? "");
     res.json({ ...result, vacancyText: vacancyText ?? "" });
   } catch (err) {
     console.error(err);

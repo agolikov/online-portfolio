@@ -8,7 +8,7 @@
 - Chat confirmation cards intercept detected mutating user intent before the assistant request is sent and show inferred tool parameters from the user request. This is a UI safety layer, not a server-side tool approval boundary.
 - Chat history is stored per resume and can be cleared from the chat UI, which deletes rows from `chat_messages`.
 - Cover letters are mirrored in the resume row and in `resumeData.coverLetters.current`. This preserves legacy access while attaching vacancy text and role-fit metrics to the portfolio JSON.
-- Generated cover letters also persist a short candidate summary for the public popup and editor preview.
+- Generated cover letters also persist a short candidate summary and optional recipient name for the public popup and editor preview.
 - PostHog is initialized in the browser and captures targeted events only; no backend analytics pipeline exists.
 - `/:hash` and `/:hash/cover` are public routes. `/edit` is development-only in the frontend router.
 - Vite proxies `/api` to Express in development, and Vercel rewrites `/api/*` to the Express function in production, which lets frontend code use relative API paths.

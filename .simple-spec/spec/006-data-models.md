@@ -84,6 +84,7 @@
 |-------|------|-------|
 | `content` | string | Cover letter text. Mirrored with the legacy `resumes.coverLetter` column for compatibility. |
 | `summary` | string | Optional short candidate summary generated with the cover letter. |
+| `recipientName` | string | Optional hiring manager or recruiter name used for the greeting. |
 | `vacancyText` | string | Optional role/vacancy text used for generation. |
 | `metrics` | `CoverLetterMetric[]` | Optional role-fit metrics. |
 | `generatedAt` | string | Optional ISO timestamp for AI-generated letters. |

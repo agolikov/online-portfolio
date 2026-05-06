@@ -19,6 +19,7 @@ export const TOOLS = toolsJson as unknown as OpenAI.Chat.Completions.ChatComplet
 export interface CoverLetterResult {
   coverLetter: string;
   summary: string;
+  recipientName: string;
   metrics: CoverLetterMetric[];
 }
 
@@ -106,6 +107,7 @@ export function attachCoverLetter(
   metrics: CoverLetterMetric[],
   generated: boolean,
   summary = summarizeCandidate(portfolio),
+  recipientName = "",
 ): Portfolio {
   const now = new Date().toISOString();
   return {
@@ -115,6 +117,7 @@ export function attachCoverLetter(
       current: {
         content: coverLetter,
         summary,
+        recipientName,
         vacancyText,
         metrics,
         generatedAt: generated ? now : portfolio.coverLetters?.current?.generatedAt,
@@ -213,7 +216,8 @@ async function executeTool(
       const metrics = portfolio.coverLetters?.current?.metrics ?? scoreRoleFit(portfolio);
       const vacancyText = portfolio.coverLetters?.current?.vacancyText ?? "";
       const summary = portfolio.coverLetters?.current?.summary ?? summarizeCandidate(portfolio);
-      const updated = attachCoverLetter(portfolio, content, vacancyText, metrics, false, summary);
+      const recipientName = portfolio.coverLetters?.current?.recipientName ?? "";
+      const updated = attachCoverLetter(portfolio, content, vacancyText, metrics, false, summary, recipientName);
       await db.update(resumes).set({ coverLetter: content, resumeData: updated }).where(eq(resumes.hash, hash));
       return { result: "Cover letter saved. Accessible at /<hash>/cover.", updatedPortfolio: updated, coverLetterSaved: true };
     }
@@ -315,51 +319,46 @@ export async function chat(hash: string, messages: ChatMessage[]): Promise<ChatR
 
 // ── Cover letter generation ───────────────────────────────────────────────────
 
-export async function generateCoverLetter(hash: string, vacancyText = ""): Promise<CoverLetterResult> {
+export async function generateCoverLetter(hash: string, vacancyText = "", recipientName = ""): Promise<CoverLetterResult> {
   const [row] = await db.select().from(resumes).where(eq(resumes.hash, hash)).limit(1);
   if (!row) throw new Error("Resume not found");
   const portfolio = row.resumeData as Portfolio;
   const metrics = scoreRoleFit(portfolio, vacancyText);
   const summary = summarizeCandidate(portfolio);
+  const greetingName = recipientName.trim() || "Hiring Manager";
+  const greeting = `Dear ${greetingName},`;
 
   // Fallback template when no AI key is configured
   if (!process.env.AI_API_KEY || process.env.AI_API_KEY === "no-key") {
     const p = portfolio.profile;
     const latest = portfolio.experience[0];
-    const letter = `Dear Hiring Manager,
+    const importantGaps = metrics
+      .filter((m) => m.score < 65)
+      .map((m) => `- ${m.label}: ${m.score}% — ${m.summary}`)
+      .join("\n") || "- No major mismatch stands out from the available role text.";
+    const letter = `${greeting}
 
-Thank you for considering my application. My name is ${p.name} and I work as ${p.title}.
+I am applying as ${p.name}, ${p.title}. Here is the honest fit summary.
 
-Candidate Summary
-${summary}
+Best fit points:
+- ${summary}
+${latest ? `- Recent role: ${latest.role} at ${latest.company}; ${latest.highlights[0] ?? "relevant delivery experience"}.` : "- Relevant professional delivery experience."}
+- Stack signals: ${portfolio.tech.slice(0, 5).map((t) => t.name).join(", ") || "not enough stack data available"}.
 
-My Experience
+Not-great-fit points:
+${importantGaps}
 
-${latest
-  ? `Most recently, I served as ${latest.role} at ${latest.company}, where I ${latest.highlights[0]?.toLowerCase() ?? "delivered meaningful results"}.`
-  : "I have a track record of delivering results across various roles and environments."
-}
-
-Advantages
-${portfolio.tech.slice(0, 4).map((t) => `- Proficient in ${t.name}`).join("\n")}
-- Collaborative team player with a growth mindset
-- Strong problem-solving and communication skills
-
-Areas for Growth
-- I am always seeking to expand my technical horizons and take on new challenges
-- Open to learning new domains and adapting to evolving team needs
-
-Role Fit Snapshot
+Role fit:
 ${metrics.map((m) => `- ${m.label}: ${m.score}% — ${m.summary}`).join("\n")}
 
-I am genuinely interested in opportunities where I can contribute meaningfully while continuing to grow professionally.
+If these trade-offs are acceptable, I would be glad to discuss where I can contribute quickly and where I would need ramp-up time.
 
 Best regards,
 ${p.name}`;
 
-    const updated = attachCoverLetter(portfolio, letter, vacancyText, metrics, true, summary);
+    const updated = attachCoverLetter(portfolio, letter, vacancyText, metrics, true, summary, recipientName.trim());
     await db.update(resumes).set({ coverLetter: letter, resumeData: updated }).where(eq(resumes.hash, hash));
-    return { coverLetter: letter, summary, metrics };
+    return { coverLetter: letter, summary, recipientName: recipientName.trim(), metrics };
   }
 
   // AI-generated cover letter
@@ -368,21 +367,21 @@ ${p.name}`;
       role: "user",
       content: `Generate a professional cover letter for me. Steps:
 1. Call get_resume to read my data.
-2. Generate a professional cover letter based on the job description and user profile.
-3. Include a short candidate summary about me near the top or naturally in the opening.
-4. Write a full cover letter that:
-   - Opens with a warm greeting to the hiring manager
-   - Highlights my top experience and achievements with specific details
-   - Lists 3-4 genuine advantages/strengths based on my resume
-   - Honestly acknowledges 1-2 areas of growth (show self-awareness)
+2. Generate a short professional cover letter based on the job description and user profile.
+3. Start exactly with this greeting: "${greeting}"
+4. Keep it short enough to read in under 1 minute. Target 160-220 words. Plain text only.
+5. Be honest and direct. Do not sugarcoat weak fit areas. If the stack, domain, seniority, or leadership level is not a good fit, say that clearly and briefly.
+6. Highlight only the most important fit points and the most important not-great-fit points.
+7. Include:
+   - tech stack overlap, including whether it is a strong or weak fit
+   - experience and transferable skills, including adjacent stack fit such as C# to Java
+   - leadership fit, especially if candidate seniority does not match the role
+   - overall match percentage
    - Uses this vacancy text as the role context when present:
 ${vacancyText || "(No vacancy text provided.)"}
-   - Reflects these role-fit metrics without mentioning them as raw scoring mechanics:
+   - Use these role-fit metrics explicitly and honestly:
 ${metrics.map((m) => `${m.label}: ${m.score}% — ${m.summary}`).join("\n")}
-   - Covers tech stack overlap, experience and transferable skills, leadership level, and overall match.
-   - Closes with genuine enthusiasm and openness to learn
-5. Call save_cover_letter with the completed letter.
-Keep it under 400 words. Plain text only, no markdown.`,
+8. Call save_cover_letter with the completed letter.`,
     },
   ]);
 
@@ -392,7 +391,7 @@ Keep it under 400 words. Plain text only, no markdown.`,
     .where(eq(resumes.hash, hash))
     .limit(1);
   const coverLetter = updated?.coverLetter ?? "";
-  const updatedPortfolio = attachCoverLetter(portfolio, coverLetter, vacancyText, metrics, true, summary);
+  const updatedPortfolio = attachCoverLetter(portfolio, coverLetter, vacancyText, metrics, true, summary, recipientName.trim());
   await db.update(resumes).set({ resumeData: updatedPortfolio }).where(eq(resumes.hash, hash));
-  return { coverLetter, summary, metrics };
+  return { coverLetter, summary, recipientName: recipientName.trim(), metrics };
 }

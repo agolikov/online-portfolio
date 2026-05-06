@@ -17,6 +17,7 @@ function CoverLetterBody() {
   const [row, setRow] = useState<ResumeRow | null>(null);
   const [letter, setLetter] = useState("");
   const [vacancyText, setVacancyText] = useState("");
+  const [recipientName, setRecipientName] = useState("");
   const [metrics, setMetrics] = useState<CoverLetterMetric[]>([]);
   const [editing, setEditing] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -30,6 +31,7 @@ function CoverLetterBody() {
       setRow(r);
       setLetter(r.coverLetter ?? "");
       setVacancyText(r.resumeData.coverLetters?.current?.vacancyText ?? "");
+      setRecipientName(r.resumeData.coverLetters?.current?.recipientName ?? "");
       setMetrics(r.resumeData.coverLetters?.current?.metrics ?? []);
     }).catch(() => setNotFound(true));
   }, [hash]);
@@ -46,6 +48,7 @@ function CoverLetterBody() {
         resumesApi.getCoverLetter(hash!).then((d) => {
           setLetter(d.coverLetter);
           setVacancyText(d.vacancyText ?? "");
+          setRecipientName(d.recipientName ?? "");
           setMetrics(d.metrics ?? []);
         });
       }
@@ -66,8 +69,9 @@ function CoverLetterBody() {
   async function generate() {
     setGenerating(true);
     try {
-      const { coverLetter, metrics } = await resumesApi.generateCoverLetter(hash!, vacancyText);
+      const { coverLetter, metrics, recipientName: savedRecipientName } = await resumesApi.generateCoverLetter(hash!, vacancyText, recipientName);
       setLetter(coverLetter);
+      setRecipientName(savedRecipientName ?? recipientName);
       setMetrics(metrics);
     } catch {
       // TODO: surface error
@@ -77,7 +81,7 @@ function CoverLetterBody() {
   }
 
   async function save() {
-    const saved = await resumesApi.saveCoverLetter(hash!, letter, vacancyText);
+    const saved = await resumesApi.saveCoverLetter(hash!, letter, vacancyText, recipientName);
     setMetrics(saved.metrics ?? metrics);
     setEditing(false);
   }
@@ -134,6 +138,17 @@ function CoverLetterBody() {
             onChange={(e) => setVacancyText(e.target.value)}
             placeholder="Paste vacancy text here..."
           />
+          <div className="mt-3">
+            <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-1">
+              Hiring manager or recruiter name
+            </label>
+            <input
+              className="w-full bg-transparent border border-border rounded-md px-3 py-2 text-sm outline-none focus:border-foreground"
+              value={recipientName}
+              onChange={(e) => setRecipientName(e.target.value)}
+              placeholder="Optional, e.g. Anna Kowalska"
+            />
+          </div>
           {metrics.length > 0 && (
             <div className="grid gap-3 sm:grid-cols-2 mt-4">
               {metrics.map((metric) => (
