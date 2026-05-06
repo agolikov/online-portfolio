@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import crypto from "crypto";
 import { db } from "./db.js";
 import { chatMessages, resumes, techSuggestions } from "./schema.js";
@@ -23,6 +23,25 @@ app.get("/api/resumes", async (_req, res) => {
   try {
     const rows = await db.select().from(resumes).orderBy(resumes.createdAt);
     res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// Get the default public resume for the root page. Returns 204 when none is set.
+app.get("/api/resumes/default", async (_req, res) => {
+  try {
+    const [row] = await db
+      .select()
+      .from(resumes)
+      .where(and(eq(resumes.isDefault, true), eq(resumes.enabled, true)))
+      .limit(1);
+    if (!row) {
+      res.status(204).send();
+      return;
+    }
+    res.json(row);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: String(err) });
@@ -114,12 +133,52 @@ app.patch("/api/resumes/:hash/toggle", async (req, res) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
+    const nextEnabled = !current.enabled;
     const [row] = await db
       .update(resumes)
-      .set({ enabled: !current.enabled })
+      .set(nextEnabled ? { enabled: true } : { enabled: false, isDefault: false })
       .where(eq(resumes.hash, req.params.hash))
       .returning();
     res.json(row);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// Set one enabled resume as default for the root page.
+app.patch("/api/resumes/:hash/default", async (req, res) => {
+  try {
+    const [current] = await db
+      .select({ id: resumes.id, enabled: resumes.enabled })
+      .from(resumes)
+      .where(eq(resumes.hash, req.params.hash))
+      .limit(1);
+    if (!current) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    if (!current.enabled) {
+      res.status(400).json({ error: "Only enabled resumes can be set as default" });
+      return;
+    }
+    await db.update(resumes).set({ isDefault: false });
+    const [row] = await db
+      .update(resumes)
+      .set({ isDefault: true })
+      .where(eq(resumes.hash, req.params.hash))
+      .returning();
+    res.json(row);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+app.delete("/api/resumes/default", async (_req, res) => {
+  try {
+    await db.update(resumes).set({ isDefault: false });
+    res.json({ cleared: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: String(err) });

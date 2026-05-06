@@ -2,8 +2,9 @@
 
 ## Implemented
 - [x] Public default portfolio — renders profile, skills, experience, projects, certificates, education, contact form, theme controls, and PDF export from local portfolio data.
+- [x] Root default resume — `/` loads the database resume marked as default when one exists and is enabled; otherwise it falls back to bundled `portfolio.json` sample data.
 - [x] Hash-based resume pages — public resume variants are accessible by `/:hash` when enabled.
-- [x] Resume editor — development-only `/edit` page can create, update, toggle, annotate, and delete resume variants.
+- [x] Resume editor — development-only `/edit` page can create, update, toggle, annotate, delete, set default resume variants, and remember the last loaded resume.
 - [x] PostgreSQL-backed resume storage — stores resume JSON, generated hash, internal note, cover letter, enabled flag, and creation timestamp.
 - [x] Tech suggestions — backend exposes categorized suggestions for editor autocomplete.
 - [x] AI chat assistant — answers portfolio questions and can call tools to read resume data, update profile, skills, experience, projects, certificates, education, stories, and cover letters.

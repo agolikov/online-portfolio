@@ -9,6 +9,7 @@
 | `note` | text | Internal owner note. Defaults to empty string. |
 | `coverLetter` | text | Saved generated or manually edited cover letter. Defaults to empty string. |
 | `enabled` | boolean | Controls whether `GET /api/resumes/:hash` is publicly readable. Defaults to true. |
+| `isDefault` | boolean | Marks the enabled resume used by `/`. Defaults to false. Only one row should be set true by the API. |
 | `createdAt` | timestamp | Creation timestamp. Defaults to current time. |
 
 ## `tech_suggestions`

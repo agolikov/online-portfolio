@@ -7,6 +7,7 @@ export interface ResumeRow {
   note: string;
   coverLetter: string;
   enabled: boolean;
+  isDefault: boolean;
   createdAt: string;
 }
 
@@ -61,6 +62,16 @@ export const resumesApi = {
   get: (hash: string) =>
     req<ResumeRow>(`/resumes/${hash}`),
 
+  getDefault: async () => {
+    const res = await fetch(`${BASE}/resumes/default`);
+    if (res.status === 204) return null;
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error ?? res.statusText);
+    }
+    return res.json() as Promise<ResumeRow>;
+  },
+
   create: (data: Portfolio) =>
     req<ResumeRow>("/resumes", {
       method: "POST",
@@ -84,6 +95,12 @@ export const resumesApi = {
 
   toggle: (hash: string) =>
     req<ResumeRow>(`/resumes/${hash}/toggle`, { method: "PATCH" }),
+
+  setDefault: (hash: string) =>
+    req<ResumeRow>(`/resumes/${hash}/default`, { method: "PATCH" }),
+
+  clearDefault: () =>
+    req<{ cleared: boolean }>("/resumes/default", { method: "DELETE" }),
 
   remove: (hash: string) =>
     req<{ deleted: boolean }>(`/resumes/${hash}`, { method: "DELETE" }),

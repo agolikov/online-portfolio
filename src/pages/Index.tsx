@@ -13,7 +13,7 @@ import { ContactForm } from "@/components/portfolio/ContactForm";
 import { StoriesList } from "@/components/portfolio/StoriesList";
 import { CoverLetterPanel } from "@/components/portfolio/CoverLetterPanel";
 import { exportPortfolioPdf } from "@/lib/exportPdf";
-import { usePortfolio } from "@/lib/portfolioStore";
+import { resumesApi } from "@/lib/resumesApi";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import staticData from "@/data/portfolio.json";
 import type { Experience } from "@/types/portfolio";
@@ -24,9 +24,28 @@ function parseTechParam(s: string | null): string[] {
 }
 
 export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {}) {
-  const storeData: Portfolio = usePortfolio();
-  const data = externalData ?? storeData;
+  const [defaultData, setDefaultData] = useState<Portfolio | null>(null);
+  const [defaultLoaded, setDefaultLoaded] = useState(Boolean(externalData));
+  const data = externalData ?? defaultData ?? (staticData as Portfolio);
   const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (externalData) return;
+    let mounted = true;
+    resumesApi.getDefault()
+      .then((row) => {
+        if (!mounted) return;
+        setDefaultData(row?.resumeData ?? null);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setDefaultData(null);
+      })
+      .finally(() => {
+        if (mounted) setDefaultLoaded(true);
+      });
+    return () => { mounted = false; };
+  }, [externalData]);
 
   // Merge store experience with static tech arrays so year counters are accurate
   // even when localStorage predates the latest tech tag additions.
@@ -83,6 +102,9 @@ export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {
   return (
     <div className="min-h-screen px-3 py-4 md:px-6 md:py-8">
       <main className="mx-auto flex max-w-4xl flex-col gap-4 md:gap-8">
+        {!defaultLoaded && (
+          <div className="paper px-4 py-3 text-sm text-muted-foreground">Loading...</div>
+        )}
         <ControlBar onExport={() => exportPortfolioPdf(data, selected)} />
         <Header profile={data.profile} />
         {currentCoverLetter?.content && (

@@ -2,6 +2,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-05-06 | Added default resume support for `/`, including `resumes.isDefault`, API endpoints to set/clear/default-load resumes, editor controls, and last-loaded resume memory in edit mode. |
 | 2026-05-06 | Added chat clear-history UI/API, richer tool-intent confirmation cards with inferred parameters, editor cover-letter generation tab, public cover-letter popup, generated candidate summaries, and Docker support with external database configuration. |
 | 2026-05-06 | Added AI tools for all portfolio sections: profile, skills, experience, projects, certificates, education, stories, and cover letters, plus matching chat confirmation detection for the new mutating sections. |
 | 2026-05-06 | Added Vercel deployment support by splitting the Express app from the local listener, adding a Vercel `/api/*` function entrypoint, configuring `vercel.json` rewrites, and documenting the production deployment shape. |

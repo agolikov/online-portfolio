@@ -46,7 +46,7 @@
 - **`server/migrations/`** — database schema history.
 
 ## Data Flow
-Default portfolio data loads from `src/data/portfolio.json` for `/`. Hash-based pages call `src/lib/resumesApi.ts`, which sends REST requests through Vite's `/api` proxy locally or Vercel rewrites in production. Express reads or writes PostgreSQL via Drizzle and returns JSON rows containing resume metadata plus `resumeData`.
+The root page calls `GET /api/resumes/default`; when an enabled default resume exists, it renders that row's `resumeData`, otherwise it falls back to bundled `src/data/portfolio.json` sample data. Hash-based pages call `src/lib/resumesApi.ts`, which sends REST requests through Vite's `/api` proxy locally or Vercel rewrites in production. Express reads or writes PostgreSQL via Drizzle and returns JSON rows containing resume metadata plus `resumeData`.
 
 AI chat requests send the visible message thread to `POST /api/chat/:hash`. The frontend shows an OK/Reject card before sending detected mutating intents. The backend persists the latest user message, loads the resume from PostgreSQL, sends the thread and tool schemas to the configured OpenAI-compatible provider, executes tool calls, writes mutations through Drizzle, persists the assistant response, and returns assistant text plus flags indicating changed data or saved cover letters. Chat history reloads from `GET /api/chat/:hash/history`.
 

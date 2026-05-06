@@ -7,6 +7,7 @@ export const resumes = pgTable("resumes", {
   note: text("note").notNull().default(""),
   coverLetter: text("cover_letter").notNull().default(""),
   enabled: boolean("enabled").notNull().default(true),
+  isDefault: boolean("is_default").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

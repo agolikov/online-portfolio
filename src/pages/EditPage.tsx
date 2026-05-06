@@ -19,6 +19,7 @@ import {
 const inputCls =
   "w-full bg-transparent border border-border px-3 py-2 text-sm outline-none focus:border-foreground placeholder:text-muted-foreground";
 const labelCls = "block text-xs uppercase tracking-widest text-muted-foreground mb-1";
+const LAST_LOADED_RESUME_KEY = "portfolio-edit-last-loaded-resume";
 
 function uid(prefix: string) {
   return `${prefix}-${Date.now()}`;
@@ -701,6 +702,26 @@ function ResumesTab({
     }
   }
 
+  async function setDefaultRow(hash: string) {
+    try {
+      await resumesApi.setDefault(hash);
+      await refresh();
+      toast({ title: "Default resume set", description: `/${hash} data will be used on the home page.` });
+    } catch (e) {
+      toast({ title: "Set default failed", description: String(e), variant: "destructive" });
+    }
+  }
+
+  async function clearDefaultRow() {
+    try {
+      await resumesApi.clearDefault();
+      await refresh();
+      toast({ title: "Default resume cleared", description: "Home page will use portfolio.json sample data." });
+    } catch (e) {
+      toast({ title: "Clear default failed", description: String(e), variant: "destructive" });
+    }
+  }
+
   function loadRow(row: ResumeRow) {
     onLoad(row.resumeData, row.hash);
     toast({ title: "Loaded", description: `Resume ${row.hash} loaded into editor.` });
@@ -769,6 +790,11 @@ function ResumesTab({
                         editing
                       </span>
                     )}
+                    {row.isDefault && (
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-600 text-white font-medium">
+                        default
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm font-medium">{(row.resumeData as Portfolio).profile?.name ?? "—"}</p>
                   <p className="text-xs text-muted-foreground">{new Date(row.createdAt).toLocaleString()}</p>
@@ -790,6 +816,20 @@ function ResumesTab({
                   <button onClick={() => copyLink(row.hash)} className="chip flex items-center gap-1" title="Copy share link">
                     <Copy size={11} /> Link
                   </button>
+                  {row.isDefault ? (
+                    <button onClick={clearDefaultRow} className="chip flex items-center gap-1" title="Clear default home resume">
+                      <X size={11} /> Default
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setDefaultRow(row.hash)}
+                      disabled={!row.enabled}
+                      className="chip flex items-center gap-1 disabled:opacity-40"
+                      title={row.enabled ? "Use this resume on the home page" : "Enable resume before setting it as default"}
+                    >
+                      <Save size={11} /> Default
+                    </button>
+                  )}
                   {!isLoaded && (
                     <button onClick={() => updateRow(row.hash)} className="chip flex items-center gap-1" title="Overwrite with current editor data">
                       <Save size={11} /> Update
@@ -834,8 +874,24 @@ function EditBody() {
     setData(p);
     savePortfolioOverride(p);
     setLoadedHash(hash);
+    localStorage.setItem(LAST_LOADED_RESUME_KEY, hash);
     setAutoSaveState("idle");
   }
+
+  useEffect(() => {
+    const lastHash = localStorage.getItem(LAST_LOADED_RESUME_KEY);
+    if (!lastHash) return;
+    let mounted = true;
+    resumesApi.list()
+      .then((rows) => {
+        if (!mounted) return;
+        const row = rows.find((r) => r.hash === lastHash);
+        if (row) handleLoad(row.resumeData, row.hash);
+      })
+      .catch(() => undefined);
+    return () => { mounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-save to DB when data changes and a resume is loaded
   useEffect(() => {
@@ -947,6 +1003,7 @@ function EditBody() {
     clearPortfolioOverride();
     setData(staticData as unknown as Portfolio);
     setLoadedHash(null);
+    localStorage.removeItem(LAST_LOADED_RESUME_KEY);
     lastSavedRef.current = "";
     setAutoSaveState("idle");
     toast({ title: "Reset", description: "Reverted to bundled data." });
