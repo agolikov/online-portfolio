@@ -11,8 +11,10 @@ import { CertificateList } from "@/components/portfolio/CertificateList";
 import { EducationList } from "@/components/portfolio/EducationList";
 import { ContactForm } from "@/components/portfolio/ContactForm";
 import { StoriesList } from "@/components/portfolio/StoriesList";
+import { CoverLetterPanel } from "@/components/portfolio/CoverLetterPanel";
 import { exportPortfolioPdf } from "@/lib/exportPdf";
 import { usePortfolio } from "@/lib/portfolioStore";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import staticData from "@/data/portfolio.json";
 import type { Experience } from "@/types/portfolio";
 
@@ -76,11 +78,34 @@ export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {
     setSelected((s) => (s.includes(name) ? s.filter((x) => x !== name) : [...s, name]));
   }
 
+  const currentCoverLetter = data.coverLetters?.current;
+
   return (
     <div className="min-h-screen px-3 py-4 md:px-6 md:py-8">
       <main className="mx-auto flex max-w-4xl flex-col gap-4 md:gap-8">
         <ControlBar onExport={() => exportPortfolioPdf(data, selected)} />
         <Header profile={data.profile} />
+        {currentCoverLetter?.content && (
+          <div className="paper px-4 py-3 md:px-10 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-widest">Cover Letter</h2>
+              <p className="mt-1 text-xs text-muted-foreground">Generated for this resume.</p>
+            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <button type="button" className="chip" data-active="true">
+                  Show Cover Letter
+                </button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Cover Letter</DialogTitle>
+                </DialogHeader>
+                <CoverLetterPanel coverLetter={currentCoverLetter} />
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
         {allTech.length > 0 && (
           <TechFilter
             tech={allTech}

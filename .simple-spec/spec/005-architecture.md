@@ -26,6 +26,8 @@
 ├── .simple-spec/                 # Project specification framework
 ├── package.json                  # Scripts and dependencies
 ├── vercel.json                   # Vercel build/output and rewrite configuration
+├── Dockerfile                    # Container image for the app server
+├── docker-compose.yml            # App-only Compose service using external DATABASE_URL
 ├── vite.config.ts                # Frontend dev server and API proxy
 └── drizzle.config.ts             # Drizzle migration config
 ```
@@ -37,7 +39,7 @@
 - **`src/lib/resumesApi.ts`** — typed REST client for resume, chat, and cover-letter endpoints.
 - **`src/lib/exportPdf.ts`** — browser-side PDF export.
 - **`server/app.ts`** — Express REST API for resumes, suggestions, chat, and cover letters.
-- **`server/index.ts`** — local development entrypoint that mounts Vite middleware and starts the app on port `3004`.
+- **`server/index.ts`** — local development entrypoint that mounts Vite middleware, and production/Docker entrypoint that serves `dist` static assets and starts the app on port `3004`.
 - **`api/index.ts`** — Vercel function entrypoint that exports the Express app for `/api/*` requests.
 - **`server/ai.ts`** — OpenAI-compatible assistant behavior, tool execution, and cover-letter generation.
 - **`server/schema.ts`** — database tables for resumes, tech suggestions, and chat messages.

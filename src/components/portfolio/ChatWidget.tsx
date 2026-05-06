@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageSquare, X, Send, Bot, Check } from "lucide-react";
+import { MessageSquare, X, Send, Bot, Check, Trash2 } from "lucide-react";
 import { resumesApi, type ChatMessage } from "@/lib/resumesApi";
 
 interface Message extends ChatMessage {
@@ -8,6 +8,8 @@ interface Message extends ChatMessage {
 
 interface PendingAction {
   description: string;
+  tool: string;
+  parameters: Record<string, string>;
   messages: Message[];
 }
 
@@ -52,16 +54,27 @@ export function ChatWidget({ hash }: { hash: string }) {
     if (open) setTimeout(() => inputRef.current?.focus(), 50);
   }, [open]);
 
-  function detectAction(content: string): string | null {
+  function action(tool: string, description: string, content: string): Omit<PendingAction, "messages"> {
+    return {
+      tool,
+      description,
+      parameters: {
+        user_request: content,
+        update_mode: tool === "save_cover_letter" ? "generate_or_save" : "replace_or_patch_section",
+      },
+    };
+  }
+
+  function detectAction(content: string): Omit<PendingAction, "messages"> | null {
     const lower = content.toLowerCase();
-    if (/(add|update|remove|delete|change).*(skill|skills|tech)/.test(lower)) return "User wants to change skills. Please confirm.";
-    if (/(update|change|set).*(profile|name|title|summary|email|linkedin|github|website|location)/.test(lower)) return "User wants to update a profile field. Please confirm.";
-    if (/(add|update|remove|delete|change|rewrite|edit).*(experience|role|job|company)/.test(lower)) return "User wants to change experience entries. Please confirm.";
-    if (/(add|update|remove|delete|change|rewrite|edit).*(project|projects)/.test(lower)) return "User wants to change projects. Please confirm.";
-    if (/(add|update|remove|delete|change|rewrite|edit).*(certificate|certification|certifications)/.test(lower)) return "User wants to change certificates. Please confirm.";
-    if (/(add|update|remove|delete|change|rewrite|edit).*(education|degree|university|school)/.test(lower)) return "User wants to change education entries. Please confirm.";
-    if (/(add|update|remove|delete|change|rewrite|edit|hide|show|disable|enable).*(story|stories|behavioral)/.test(lower)) return "User wants to change stories. Please confirm.";
-    if (/(save|generate|write|update|regenerate).*(cover letter)/.test(lower)) return "User wants to create or update a cover letter. Please confirm.";
+    if (/(add|update|remove|delete|change).*(skill|skills|tech)/.test(lower)) return action("update_skills", "User wants to change skills. Please confirm.", content);
+    if (/(update|change|set).*(profile|name|title|summary|email|linkedin|github|website|location)/.test(lower)) return action("update_profile_field", "User wants to update a profile field. Please confirm.", content);
+    if (/(add|update|remove|delete|change|rewrite|edit).*(experience|role|job|company)/.test(lower)) return action("update_experience", "User wants to change experience entries. Please confirm.", content);
+    if (/(add|update|remove|delete|change|rewrite|edit).*(project|projects)/.test(lower)) return action("update_projects", "User wants to change projects. Please confirm.", content);
+    if (/(add|update|remove|delete|change|rewrite|edit).*(certificate|certification|certifications)/.test(lower)) return action("update_certificates", "User wants to change certificates. Please confirm.", content);
+    if (/(add|update|remove|delete|change|rewrite|edit).*(education|degree|university|school)/.test(lower)) return action("update_education", "User wants to change education entries. Please confirm.", content);
+    if (/(add|update|remove|delete|change|rewrite|edit|hide|show|disable|enable).*(story|stories|behavioral)/.test(lower)) return action("update_stories", "User wants to change stories. Please confirm.", content);
+    if (/(save|generate|write|update|regenerate).*(cover letter)/.test(lower)) return action("save_cover_letter", "User wants to create or update a cover letter. Please confirm.", content);
     return null;
   }
 
@@ -98,10 +111,17 @@ export function ChatWidget({ hash }: { hash: string }) {
 
     const action = detectAction(content);
     if (action) {
-      setPendingAction({ description: action, messages: next });
+      setPendingAction({ ...action, messages: next });
       return;
     }
     await runChat(next);
+  }
+
+  async function clearHistory() {
+    if (loading) return;
+    await resumesApi.clearChatHistory(hash);
+    setMessages([]);
+    setPendingAction(null);
   }
 
   function rejectAction() {
@@ -130,6 +150,15 @@ export function ChatWidget({ hash }: { hash: string }) {
             <Bot size={15} className="accent-text shrink-0" />
             <span className="text-sm font-semibold flex-1">AI Assistant</span>
             <span className="text-xs text-muted-foreground font-mono">{hash}</span>
+            <button
+              type="button"
+              onClick={clearHistory}
+              disabled={loading || messages.length === 0}
+              className="chip h-7 px-2 flex items-center gap-1.5 disabled:opacity-40"
+              aria-label="Clear chat history"
+            >
+              <Trash2 size={12} /> Clear
+            </button>
           </div>
 
           {/* Messages */}
@@ -182,6 +211,13 @@ export function ChatWidget({ hash }: { hash: string }) {
             {pendingAction && (
               <div className="rounded-md border border-border bg-background px-3 py-3 max-w-[88%]">
                 <p className="text-sm font-medium">Action: {pendingAction.description}</p>
+                <div className="mt-2 rounded bg-muted/60 p-2 text-xs">
+                  <div><span className="font-medium">Tool:</span> <code>{pendingAction.tool}</code></div>
+                  <div className="mt-1 font-medium">Parameters</div>
+                  <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-[11px] text-muted-foreground">
+                    {JSON.stringify(pendingAction.parameters, null, 2)}
+                  </pre>
+                </div>
                 <div className="mt-3 flex gap-2">
                   <button
                     type="button"

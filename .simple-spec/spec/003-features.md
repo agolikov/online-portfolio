@@ -9,12 +9,16 @@
 - [x] AI chat assistant — answers portfolio questions and can call tools to read resume data, update profile, skills, experience, projects, certificates, education, stories, and cover letters.
 - [x] Persisted chat history — chat messages and assistant tool markers are stored per resume and reloaded in the chat UI.
 - [x] AI action confirmation cards — detected mutating chat intents show an explicit OK/Reject card before the assistant call runs.
+- [x] Chat management — chat history is persisted per resume and can be cleared from the chat UI.
 - [x] Cover letter page — `/:hash/cover` supports vacancy text/file input, role-fit metrics, loading, manual editing, saving, and AI generation of cover letters attached to a resume.
+- [x] Cover letter editor tab — `/edit` includes a cover-letter tab that accepts job description text, generates a letter plus candidate summary and role-fit metrics, and stores the result in the portfolio JSON.
+- [x] Cover letter popup — public/home portfolio views show a `Show Cover Letter` button when generated cover-letter metadata exists.
 - [x] PostHog analytics — captures contact form submission, PDF export, GitHub click, theme/accent changes, tech filters, and project clicks.
 - [x] PDF export — exports the rendered portfolio/resume view to PDF with a visible `Download PDF` control label.
 - [x] Behavioral stories display — public portfolio renders stories unless the per-story public toggle is disabled.
 - [x] Unified development startup — `pnpm run dev` runs both the Vite frontend and Express backend.
 - [x] Environment sample — `.env.example` documents database, server, AI, and PostHog settings.
+- [x] Docker support — Dockerfile and Compose run the app on port `3004` using an externally supplied PostgreSQL `DATABASE_URL`.
 
 ## Planned
 - [ ] Add richer vacancy-file parsing for PDF/DOCX attachments.

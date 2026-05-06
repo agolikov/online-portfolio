@@ -18,6 +18,7 @@ export const TOOLS = toolsJson as unknown as OpenAI.Chat.Completions.ChatComplet
 
 export interface CoverLetterResult {
   coverLetter: string;
+  summary: string;
   metrics: CoverLetterMetric[];
 }
 
@@ -104,6 +105,7 @@ export function attachCoverLetter(
   vacancyText: string,
   metrics: CoverLetterMetric[],
   generated: boolean,
+  summary = summarizeCandidate(portfolio),
 ): Portfolio {
   const now = new Date().toISOString();
   return {
@@ -112,6 +114,7 @@ export function attachCoverLetter(
       ...portfolio.coverLetters,
       current: {
         content: coverLetter,
+        summary,
         vacancyText,
         metrics,
         generatedAt: generated ? now : portfolio.coverLetters?.current?.generatedAt,
@@ -119,6 +122,13 @@ export function attachCoverLetter(
       },
     },
   };
+}
+
+function summarizeCandidate(portfolio: Portfolio): string {
+  const latest = portfolio.experience[0];
+  const topTech = portfolio.tech.slice(0, 5).map((t) => t.name).join(", ");
+  const latestText = latest ? ` Most recently: ${latest.role} at ${latest.company}.` : "";
+  return `${portfolio.profile.name} is a ${portfolio.profile.title}. ${portfolio.profile.summary}${latestText}${topTech ? ` Core stack: ${topTech}.` : ""}`.trim();
 }
 
 async function savePortfolio(hash: string, portfolio: Portfolio): Promise<void> {
@@ -202,7 +212,8 @@ async function executeTool(
       const content = args.content as string;
       const metrics = portfolio.coverLetters?.current?.metrics ?? scoreRoleFit(portfolio);
       const vacancyText = portfolio.coverLetters?.current?.vacancyText ?? "";
-      const updated = attachCoverLetter(portfolio, content, vacancyText, metrics, false);
+      const summary = portfolio.coverLetters?.current?.summary ?? summarizeCandidate(portfolio);
+      const updated = attachCoverLetter(portfolio, content, vacancyText, metrics, false, summary);
       await db.update(resumes).set({ coverLetter: content, resumeData: updated }).where(eq(resumes.hash, hash));
       return { result: "Cover letter saved. Accessible at /<hash>/cover.", updatedPortfolio: updated, coverLetterSaved: true };
     }
@@ -309,6 +320,7 @@ export async function generateCoverLetter(hash: string, vacancyText = ""): Promi
   if (!row) throw new Error("Resume not found");
   const portfolio = row.resumeData as Portfolio;
   const metrics = scoreRoleFit(portfolio, vacancyText);
+  const summary = summarizeCandidate(portfolio);
 
   // Fallback template when no AI key is configured
   if (!process.env.AI_API_KEY || process.env.AI_API_KEY === "no-key") {
@@ -318,7 +330,8 @@ export async function generateCoverLetter(hash: string, vacancyText = ""): Promi
 
 Thank you for considering my application. My name is ${p.name} and I work as ${p.title}.
 
-${p.summary}
+Candidate Summary
+${summary}
 
 My Experience
 
@@ -344,9 +357,9 @@ I am genuinely interested in opportunities where I can contribute meaningfully w
 Best regards,
 ${p.name}`;
 
-    const updated = attachCoverLetter(portfolio, letter, vacancyText, metrics, true);
+    const updated = attachCoverLetter(portfolio, letter, vacancyText, metrics, true, summary);
     await db.update(resumes).set({ coverLetter: letter, resumeData: updated }).where(eq(resumes.hash, hash));
-    return { coverLetter: letter, metrics };
+    return { coverLetter: letter, summary, metrics };
   }
 
   // AI-generated cover letter
@@ -355,7 +368,9 @@ ${p.name}`;
       role: "user",
       content: `Generate a professional cover letter for me. Steps:
 1. Call get_resume to read my data.
-2. Write a full cover letter that:
+2. Generate a professional cover letter based on the job description and user profile.
+3. Include a short candidate summary about me near the top or naturally in the opening.
+4. Write a full cover letter that:
    - Opens with a warm greeting to the hiring manager
    - Highlights my top experience and achievements with specific details
    - Lists 3-4 genuine advantages/strengths based on my resume
@@ -364,8 +379,9 @@ ${p.name}`;
 ${vacancyText || "(No vacancy text provided.)"}
    - Reflects these role-fit metrics without mentioning them as raw scoring mechanics:
 ${metrics.map((m) => `${m.label}: ${m.score}% — ${m.summary}`).join("\n")}
+   - Covers tech stack overlap, experience and transferable skills, leadership level, and overall match.
    - Closes with genuine enthusiasm and openness to learn
-3. Call save_cover_letter with the completed letter.
+5. Call save_cover_letter with the completed letter.
 Keep it under 400 words. Plain text only, no markdown.`,
     },
   ]);
@@ -376,7 +392,7 @@ Keep it under 400 words. Plain text only, no markdown.`,
     .where(eq(resumes.hash, hash))
     .limit(1);
   const coverLetter = updated?.coverLetter ?? "";
-  const updatedPortfolio = attachCoverLetter(portfolio, coverLetter, vacancyText, metrics, true);
+  const updatedPortfolio = attachCoverLetter(portfolio, coverLetter, vacancyText, metrics, true, summary);
   await db.update(resumes).set({ resumeData: updatedPortfolio }).where(eq(resumes.hash, hash));
-  return { coverLetter, metrics };
+  return { coverLetter, summary, metrics };
 }

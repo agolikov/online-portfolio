@@ -29,6 +29,7 @@ export interface ChatHistoryMessage extends ChatMessage {
 
 export interface CoverLetterResponse {
   coverLetter: string;
+  summary: string;
   metrics: CoverLetterMetric[];
   vacancyText?: string;
 }
@@ -90,6 +91,9 @@ export const resumesApi = {
   // ── AI chat ────────────────────────────────────────────────────────────────
   getChatHistory: (hash: string) =>
     req<ChatHistoryMessage[]>(`/chat/${hash}/history`),
+
+  clearChatHistory: (hash: string) =>
+    req<{ deleted: boolean }>(`/chat/${hash}/history`, { method: "DELETE" }),
 
   chat: (hash: string, messages: ChatMessage[]) =>
     req<ChatResponse>(`/chat/${hash}`, {

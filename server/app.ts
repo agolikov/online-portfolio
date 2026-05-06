@@ -188,6 +188,25 @@ app.get("/api/chat/:hash/history", async (req, res) => {
   }
 });
 
+app.delete("/api/chat/:hash/history", async (req, res) => {
+  try {
+    const [row] = await db
+      .select({ id: resumes.id })
+      .from(resumes)
+      .where(eq(resumes.hash, req.params.hash))
+      .limit(1);
+    if (!row) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    await db.delete(chatMessages).where(eq(chatMessages.resumeId, row.id));
+    res.json({ deleted: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 app.post("/api/chat/:hash", async (req, res) => {
   try {
     const { messages } = req.body as { messages: { role: "user" | "assistant"; content: string }[] };
@@ -236,6 +255,7 @@ app.get("/api/resumes/:hash/cover", async (req, res) => {
     const portfolio = row.resumeData as Portfolio;
     res.json({
       coverLetter: row.coverLetter,
+      summary: portfolio.coverLetters?.current?.summary ?? "",
       metrics: portfolio.coverLetters?.current?.metrics ?? [],
       vacancyText: portfolio.coverLetters?.current?.vacancyText ?? "",
     });
@@ -265,7 +285,12 @@ app.put("/api/resumes/:hash/cover", async (req, res) => {
       .where(eq(resumes.hash, req.params.hash))
       .returning();
     if (!row) { res.status(404).json({ error: "Not found" }); return; }
-    res.json({ coverLetter: row.coverLetter, metrics, vacancyText: nextVacancyText });
+    res.json({
+      coverLetter: row.coverLetter,
+      summary: updatedPortfolio.coverLetters?.current?.summary ?? "",
+      metrics,
+      vacancyText: nextVacancyText,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: String(err) });
@@ -277,7 +302,7 @@ app.post("/api/resumes/:hash/cover/generate", async (req, res) => {
   try {
     const { vacancyText } = req.body as { vacancyText?: string };
     const result = await generateCoverLetter(req.params.hash, vacancyText ?? "");
-    res.json(result);
+    res.json({ ...result, vacancyText: vacancyText ?? "" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: String(err) });

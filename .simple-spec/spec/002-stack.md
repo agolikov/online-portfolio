@@ -42,6 +42,8 @@
 - Standalone Vite configuration also uses port `3004`.
 - Vite proxy target is `http://localhost:3004` for consistency with the single app port.
 - Vercel build command is `pnpm run build`, output directory is `dist`, and rewrites route `/api/*` to `api/index.ts` plus all non-API paths to `index.html`.
+- Dockerfile builds the Vite app and runs the Express server in production mode on port `3004`.
+- Docker Compose starts only the app service; `DATABASE_URL` must point to an external PostgreSQL database.
 - Database migrations live in `server/migrations/`.
 - Test runner: Vitest with jsdom.
 

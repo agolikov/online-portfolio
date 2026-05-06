@@ -6,13 +6,14 @@ import type { TechSuggestion } from "@/lib/resumesApi";
 import { clearPortfolioOverride, loadPortfolio, savePortfolioOverride } from "@/lib/portfolioStore";
 import { resumesApi, type ResumeRow } from "@/lib/resumesApi";
 import { ChatPane } from "@/components/portfolio/ChatPane";
+import { CoverLetterPanel } from "@/components/portfolio/CoverLetterPanel";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, Save, RotateCcw, Download, Upload, Plus, Trash2,
-  ChevronDown, ChevronUp, Copy, RefreshCw, X, Eye, EyeOff,
+  ChevronDown, ChevronUp, Copy, RefreshCw, X, Eye, EyeOff, Sparkles,
 } from "lucide-react";
 
 const inputCls =
@@ -474,6 +475,14 @@ function StoriesTab({
                   {isOpen ? <ChevronUp size={14} className="shrink-0" /> : <ChevronDown size={14} className="shrink-0" />}
                   <span className="text-sm font-medium truncate">{story.question}</span>
                 </button>
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+                  {story.public === false ? <EyeOff size={14} /> : <Eye size={14} />}
+                  <Switch
+                    checked={story.public !== false}
+                    onCheckedChange={(checked) => togglePublic(story.id, checked)}
+                    aria-label="Toggle public access for story"
+                  />
+                </label>
                 <button
                   type="button"
                   onClick={() => removeStory(story.id)}
@@ -484,18 +493,7 @@ function StoriesTab({
                 </button>
               </div>
               {isOpen && (
-                <div className="px-4 py-3 space-y-3">
-                  <label className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
-                    <span className="flex items-center gap-2 text-sm">
-                      {story.public === false ? <EyeOff size={14} /> : <Eye size={14} />}
-                      Public access
-                    </span>
-                    <Switch
-                      checked={story.public !== false}
-                      onCheckedChange={(checked) => togglePublic(story.id, checked)}
-                      aria-label="Toggle public access for story"
-                    />
-                  </label>
+                <div className="px-4 py-3">
                   <textarea
                     rows={5}
                     className={inputCls + " resize-none"}
@@ -509,6 +507,88 @@ function StoriesTab({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ── Cover letter tab ─────────────────────────────────────────────────────────
+
+function CoverLetterTab({
+  data,
+  loadedHash,
+  onChange,
+}: {
+  data: Portfolio;
+  loadedHash: string | null;
+  onChange: (data: Portfolio) => void;
+}) {
+  const [jobDescription, setJobDescription] = useState(data.coverLetters?.current?.vacancyText ?? "");
+  const [generating, setGenerating] = useState(false);
+
+  useEffect(() => {
+    setJobDescription(data.coverLetters?.current?.vacancyText ?? "");
+  }, [data.coverLetters?.current?.vacancyText]);
+
+  async function generate() {
+    if (!loadedHash || !jobDescription.trim()) return;
+    setGenerating(true);
+    try {
+      const result = await resumesApi.generateCoverLetter(loadedHash, jobDescription);
+      onChange({
+        ...data,
+        coverLetters: {
+          ...data.coverLetters,
+          current: {
+            content: result.coverLetter,
+            summary: result.summary,
+            vacancyText: result.vacancyText ?? jobDescription,
+            metrics: result.metrics,
+            generatedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      });
+      window.dispatchEvent(new CustomEvent("resume-data-changed", { detail: { hash: loadedHash } }));
+      toast({ title: "Cover letter generated", description: "Saved to the loaded resume." });
+    } catch {
+      toast({ title: "Failed to generate cover letter", variant: "destructive" });
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  if (!loadedHash) {
+    return (
+      <p className="mt-6 text-sm text-muted-foreground">
+        Load a resume from the <strong>Resumes</strong> tab first — generated cover letters are saved to a database resume.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-6 space-y-4">
+      <div>
+        <label className={labelCls}>Job Description</label>
+        <textarea
+          rows={10}
+          className={inputCls + " resize-y"}
+          value={jobDescription}
+          onChange={(e) => setJobDescription(e.target.value)}
+          placeholder="Paste the vacancy text here..."
+        />
+      </div>
+      <button
+        type="button"
+        onClick={generate}
+        disabled={generating || !jobDescription.trim()}
+        className="chip flex items-center gap-1.5 disabled:opacity-40"
+        data-active="true"
+      >
+        <Sparkles size={12} /> {generating ? "Generating..." : "Generate"}
+      </button>
+      {data.coverLetters?.current?.content && (
+        <CoverLetterPanel coverLetter={data.coverLetters.current} />
+      )}
     </div>
   );
 }
@@ -941,7 +1021,7 @@ function EditBody() {
 
         <Tabs defaultValue="profile">
           <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
-            {(["profile", "tech", "experience", "projects", "certificates", "education", "stories", "chat", "resumes"] as const).map((t) => (
+            {(["profile", "tech", "experience", "projects", "certificates", "education", "stories", "cover", "chat", "resumes"] as const).map((t) => (
               <TabsTrigger key={t} value={t} className="text-xs uppercase tracking-widest">
                 {t}
               </TabsTrigger>
@@ -1136,6 +1216,11 @@ function EditBody() {
           {/* ── STORIES ── */}
           <TabsContent value="stories">
             <StoriesTab stories={data.stories ?? []} onChange={setStories} />
+          </TabsContent>
+
+          {/* ── COVER LETTER ── */}
+          <TabsContent value="cover">
+            <CoverLetterTab data={data} loadedHash={loadedHash} onChange={setData} />
           </TabsContent>
 
           {/* ── CHAT ── */}
