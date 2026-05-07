@@ -4,7 +4,7 @@ import type { Certificate, CoverLetterMetric, Education, Experience, Portfolio, 
 import { db } from "./db.js";
 import { resumes } from "./schema.js";
 import { eq } from "drizzle-orm";
-import toolsJson from "./tools.json";
+import toolsJson from "./tools.json" with { type: "json" };
 
 export const openai = new OpenAI({
   apiKey: process.env.AI_API_KEY ?? "no-key",
