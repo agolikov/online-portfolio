@@ -7,9 +7,6 @@ export default defineConfig(() => ({
   server: {
     host: "::",
     port: 3004,
-    hmr: {
-      overlay: false,
-    },
     proxy: {
       "/api": {
         target: "http://localhost:3004",

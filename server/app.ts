@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 import { and, asc, eq } from "drizzle-orm";
 import crypto from "crypto";
 import { db } from "./db.js";
@@ -13,6 +14,17 @@ const app = express();
 
 app.use(express.json({ limit: "2mb" }));
 app.use(cors());
+
+// General API limit — 120 req/min per IP
+app.use("/api", rateLimit({ windowMs: 60_000, max: 120, standardHeaders: true, legacyHeaders: false }));
+
+// Strict limit on expensive AI endpoints — 10 req/min per IP
+const aiLimit = rateLimit({ windowMs: 60_000, max: 10, standardHeaders: true, legacyHeaders: false });
+app.use("/api/chat", aiLimit);
+app.use("/api/resumes", (req, _res, next) => {
+  if (req.path.endsWith("/cover/generate") && req.method === "POST") return aiLimit(req, _res, next);
+  next();
+});
 
 function generateHash(): string {
   return crypto.randomBytes(5).toString("hex"); // always 10 hex chars
@@ -312,9 +324,10 @@ app.get("/api/resumes/:hash/cover", async (req, res) => {
       .limit(1);
     if (!row) { res.status(404).json({ error: "Not found" }); return; }
     const portfolio = row.resumeData as Portfolio;
-    res.json({
-      coverLetter: row.coverLetter,
-      summary: portfolio.coverLetters?.current?.summary ?? "",
+	    res.json({
+	      coverLetter: row.coverLetter,
+	      enabled: portfolio.coverLetters?.current?.enabled ?? true,
+	      summary: portfolio.coverLetters?.current?.summary ?? "",
       recipientName: portfolio.coverLetters?.current?.recipientName ?? "",
       metrics: portfolio.coverLetters?.current?.metrics ?? [],
       vacancyText: portfolio.coverLetters?.current?.vacancyText ?? "",
@@ -346,9 +359,10 @@ app.put("/api/resumes/:hash/cover", async (req, res) => {
       .where(eq(resumes.hash, req.params.hash))
       .returning();
     if (!row) { res.status(404).json({ error: "Not found" }); return; }
-    res.json({
-      coverLetter: row.coverLetter,
-      summary: updatedPortfolio.coverLetters?.current?.summary ?? "",
+	    res.json({
+	      coverLetter: row.coverLetter,
+	      enabled: updatedPortfolio.coverLetters?.current?.enabled ?? true,
+	      summary: updatedPortfolio.coverLetters?.current?.summary ?? "",
       recipientName: nextRecipientName,
       metrics,
       vacancyText: nextVacancyText,

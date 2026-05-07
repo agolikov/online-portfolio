@@ -1,360 +1,181 @@
-# Simple-Spec
+# Online Portfolio
 
-A spec-first, AI-assisted development framework for software projects.
-
-**The idea:** Before writing code, write a clear spec. Before implementing a feature, write a clear plan. The AI helps with both — but never skips ahead.
-
-```
-Spec → Plan → Implement → Review → Commit
-```
+A full-stack personal portfolio and resume application. Share your professional experience publicly, create multiple hash-based resume variants for specific roles, generate targeted cover letters with AI, and manage everything from a built-in editor.
 
 ---
 
-## Setup
+## What it does
 
-### 1. Place Simple-Spec at your project root
+**Public portfolio** — visitors land on `/` and see your profile, skills, work history, projects, certificates, education, and behavioral stories. The page is filterable by tech stack, exports to PDF, and auto-opens a cover letter popup when one is attached.
 
-Simple-Spec lives in a `.simple-spec/` folder at the root of your project, alongside your source code.
-The only exception is `CLAUDE.md` — it must stay at the root so Claude Code auto-loads it.
+**Hash-based resume variants** — each resume lives at a short URL like `/a3f9c1b2`. You control which variants are public, which is the default home page, and you can create as many as you need — one per role, seniority level, or company.
 
-```
-your-project/              ← open this folder in Claude Code
-│
-├── CLAUDE.md              ← auto-loaded by Claude Code (must stay at root)
-│
-├── .simple-spec/          ← all framework files live here
-│   ├── SPEC.md
-│   ├── spec/
-│   ├── queue_tasks/
-│   ├── completed_tasks/
-│   └── prompts/
-│
-└── src/                   ← your source code (could be src/, app/, or .)
-    ├── ...
-    └── ...
-```
+**AI assistant** — an in-page chat lets you ask questions about the resume or instruct it to update sections directly: *"add Python and FastAPI to the skills"*, *"rewrite the summary to be more concise"*. Changes are confirmed before they run and saved to the database immediately.
 
-Your source code folder name doesn't matter — it just needs to exist somewhere under the project root.
+**Cover letters** — paste a job description, optionally add the hiring manager's name, and generate a short candid cover letter via AI (or a fallback template when no AI key is configured). The letter is attached to the resume and shown in a popup on the public page.
 
-### 2. Tell the AI where your source code is
-
-Open `spec/01-overview.md` and fill in the **Source path** field:
-
-```md
-**Source path:** src/
-```
-
-Use the path relative to the project root. Common values:
-
-| Layout | Source path |
-|--------|-------------|
-| Source in `src/` | `src/` |
-| Next.js / Nuxt app folder | `app/` |
-| Source at project root | `.` |
-| Monorepo | `apps/web/ apps/api/` |
-
-The AI reads this field first in every session and uses it to locate your code.
-If it's missing, the AI will ask before doing anything.
-
-### 3. Initialize the spec
-
-Open Claude Code and run one of:
-
-```
-init project       ← brand new project, no code yet
-migrate project    ← existing codebase you're bringing in
-```
-
-No install, no dependencies. It's a folder of markdown files.
-
-> `CLAUDE.md` is loaded automatically by Claude Code at session start.
+**Editor** — a dev-only `/edit` page manages all resume variants, edits every section inline with auto-save, and includes the AI chat panel.
 
 ---
 
-## Full Walkthrough
+## Features
 
-Say you have an existing SaaS project — a task management app called **TaskFlow**. It has a Next.js frontend, a Postgres database, and some existing features but no documentation.
-
-### Step 1 — Migrate an existing project
-
-Open Claude Code in your project and say:
-
-```
-migrate project
-```
-
-The AI will:
-1. Read your `package.json`, config files, routes, and schema
-2. Map out your stack, features, pages, and architecture
-3. Fill in all the files under `spec/`
-4. Ask you to confirm: *"Does this capture the project accurately? What did I miss?"*
-
-You review, correct anything wrong, and approve. Now `spec/` is your living project spec.
-
-**Result:** Your `spec/` folder is populated with the current state of the project.
-
-```
-spec/
-├── 01-overview.md      ← "TaskFlow — team task management SaaS"
-├── 02-stack.md         ← Next.js 14, Postgres, Prisma, Clerk, Vercel
-├── 03-features.md      ← Auth ✓, Projects ✓, Tasks ✓, Comments — planned
-├── 04-pages-modules.md ← /dashboard, /projects/[id], /api/tasks, ...
-├── 05-architecture.md  ← app/ layout, API routes, Prisma client singleton
-├── 06-data-models.md   ← User, Project, Task schemas
-├── 07-dependencies.md  ← next, prisma, @clerk/nextjs, tailwindcss, ...
-├── 08-design-notes.md  ← "Optimistic updates on task status changes"
-├── 09-debt.md          ← "No error boundaries on project pages — medium"
-└── 10-changelog.md     ← "2026-05-04 — initial spec migration"
-```
+| Feature | Details |
+|---------|---------|
+| Public portfolio | Profile, skills, experience, projects, certs, education, stories, contact form |
+| Tech filter | Filter experience and projects by stack tag; state syncs to the URL |
+| PDF export | One-click export of the rendered view |
+| Hash resume variants | Multiple resumes at `/:hash`; each independently enabled/disabled |
+| Default home resume | One resume can be pinned as the root `/` page |
+| Resume editor | Create, edit, toggle, annotate, delete, and set-default variants |
+| Per-section visibility | Toggle individual experience, project, cert, edu, and story entries on/off |
+| Cover letters | AI-generated or manual; attached per resume; shown as a popup on the public page |
+| AI chat assistant | OpenAI-compatible; reads and writes all resume sections via tool calls |
+| Confirmation cards | Detected mutating intents show an OK/Reject card before the AI runs |
+| Persisted chat history | Conversation stored per resume in the database; clearable |
+| PostHog analytics | Contact form, PDF export, GitHub clicks, theme changes, tech filter, project clicks |
+| Rate limiting | 120 req/min general; 10 req/min on AI chat and cover-generation endpoints |
+| Docker support | Dockerfile + Compose on port 3004; expects an external PostgreSQL URL |
 
 ---
 
-### Step 2 — Add a new feature
+## Tech stack
 
-You have an idea: *"I want users to be able to leave comments on tasks."*
-
-Say to Claude:
-
-```
-implement task comments
-```
-
-The AI acts as **Task Master** — it doesn't write code yet. Instead it:
-
-1. Asks clarifying questions:
-   - *"Should comments support markdown formatting?"*
-   - *"Do you need edit/delete, or just post?"*
-   - *"Should there be notifications when someone is mentioned?"*
-
-2. Evaluates the idea critically:
-   - *"This is genuinely valuable — asynchronous discussion is the most-requested feature in similar tools."*
-   - *"Suggest keeping scope tight: text-only comments + delete-own-comment. Markdown and mentions can be follow-up tasks."*
-
-3. Writes a structured task spec and shows it to you:
-
-   ```
-   Title: Task Comments — MVP
-   What: Users can post and delete text comments on tasks
-   Why: Enables async discussion without leaving the app
-   Scope:
-     IN  — post comment, delete own comment, show comment count on task card
-     OUT — markdown, @mentions, notifications, reactions
-   Affected modules: TaskDetail page, /api/comments, Prisma schema
-   Approach:
-     - Add Comment model (id, taskId, authorId, body, createdAt)
-     - POST /api/comments, DELETE /api/comments/[id]
-     - CommentThread component below task description
-   Risks: comment count query adds a join — watch for N+1 on task lists
-   ```
-
-4. Asks: *"Does this capture what you want? Approve to create the task file."*
-
-You say **approved**. The AI creates:
-
-```
-queue_tasks/task-comments-mvp.md
-```
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui |
+| Backend | Node.js, Express 5, TypeScript (`tsx`) |
+| Database | PostgreSQL via Drizzle ORM |
+| AI | OpenAI-compatible API (configurable model and base URL) |
+| Analytics | PostHog (browser-side, optional) |
+| Deployment | Vercel (frontend + Express serverless) or Docker |
 
 ---
 
-### Step 3 — Execute the task
+## Quick start
 
-Now say:
+### Prerequisites
 
-```
-work queue
-```
+- Node.js 20+
+- pnpm
+- PostgreSQL database (local or hosted)
 
-**Phase 1 — Refine & Evaluate** (already done above since you just created it, but the AI will confirm it's the next task and show the plan)
-
-**→ STOP.** You approve to proceed.
-
-**Phase 2 — Implementation Planning**
-
-The AI reads `spec/05-architecture.md` and the existing codebase, then produces:
-
-```
-Files to create:
-  app/api/comments/route.ts          — POST handler
-  app/api/comments/[id]/route.ts     — DELETE handler
-  components/CommentThread.tsx       — thread UI
-  components/CommentInput.tsx        — input form
-
-Files to modify:
-  prisma/schema.prisma               — add Comment model
-  app/projects/[id]/tasks/[id]/page.tsx — add <CommentThread />
-
-Steps:
-  1. Add Comment model to Prisma schema
-  2. Run prisma migrate dev --name add-comments
-  3. Implement POST /api/comments with auth check
-  4. Implement DELETE /api/comments/[id] — only author can delete
-  5. Build CommentThread component (read-only list)
-  6. Build CommentInput component (form + optimistic update)
-  7. Wire into TaskDetail page
-
-Trade-offs:
-  - Polling vs websockets: using polling (5s interval) — simpler, good enough for MVP
-  - Not paginating comments — task comments rarely exceed 50, revisit if needed
-
-Out of scope: markdown rendering, @mentions, notifications
-```
-
-**→ STOP.** You review the plan and approve.
-
-**Phase 3 — Implementation**
-
-The AI writes the code exactly as planned. No surprises, no extra features.
-
-**Phase 4 — Spec Sync**
-
-The AI updates the relevant `spec/` files:
-
-- `spec/03-features.md` — moves "Comments" from Planned → Implemented
-- `spec/06-data-models.md` — adds the `Comment` model table
-- `spec/07-dependencies.md` — no new deps needed
-- `spec/10-changelog.md` — adds `2026-05-04 — added task comments MVP`
-
-**Phase 5 — Pause & Review**
-
-**→ STOP.** The AI presents a full summary and waits. It does not commit.
-
-```
-## Changes Summary
-
-Implemented:
-  ✓ Comment model (Prisma migration: 20260504_add_comments)
-  ✓ POST /api/comments — creates comment, returns 201
-  ✓ DELETE /api/comments/[id] — author-only, returns 204
-  ✓ <CommentThread /> — renders comments with author + timestamp
-  ✓ <CommentInput /> — optimistic submit, error rollback
-  ✓ Wired into TaskDetail page
-
-Spec updated:
-  ✓ spec/03-features.md — Comments moved to Implemented
-  ✓ spec/06-data-models.md — Comment model added
-  ✓ spec/10-changelog.md — entry added
-
-Watch out for:
-  - The comment count join on task list queries — run EXPLAIN ANALYZE
-    if you notice slowness on large projects
-
-Anything to adjust, or ready to commit?
-```
-
-You review the changes in your editor. Everything looks good.
-
----
-
-### Step 4 — Git commit
-
-You commit manually. The AI never runs `git commit`.
-
-The AI suggests a commit message:
-
-```
-feat: add task comments MVP
-
-- Comment model + migration
-- POST /api/comments, DELETE /api/comments/[id]
-- CommentThread + CommentInput components
-- Wired into TaskDetail page
-```
-
-You run:
+### 1. Clone and install
 
 ```bash
-git add .
-git commit -m "feat: add task comments MVP
-
-- Comment model + migration
-- POST /api/comments, DELETE /api/comments/[id]
-- CommentThread + CommentInput components
-- Wired into TaskDetail page"
+git clone <repo-url>
+cd online-portfolio
+pnpm install
 ```
 
-Done. One complete cycle.
+### 2. Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env`:
+
+```env
+# Required — PostgreSQL connection string
+DATABASE_URL=postgres://user:password@localhost:5432/online_portfolio
+
+# Optional — enables AI chat and cover-letter generation
+AI_API_KEY=sk-...
+AI_BASE_URL=                        # leave empty for OpenAI; set for Ollama or compatible APIs
+AI_MODEL=gpt-4o-mini
+
+# Optional — PostHog analytics
+VITE_POSTHOG_KEY=phc_...
+VITE_POSTHOG_HOST=https://us.i.posthog.com
+```
+
+AI features degrade gracefully: chat returns a disabled message and cover letters use a built-in fallback template when `AI_API_KEY` is not set.
+
+### 3. Set up the database
+
+```bash
+pnpm db:push        # apply schema to the database
+pnpm db:seed        # optional — seed tech suggestions
+```
+
+### 4. Start the dev server
+
+```bash
+pnpm dev
+```
+
+Opens at `http://localhost:3004`. The Express API and Vite frontend run on the same port.
 
 ---
 
-## Other Features
+## Usage
 
-### Find technical debt
+### Editing your portfolio
 
-```
-find technical debt in the API routes
-```
+1. Open `http://localhost:3004/edit`
+2. Edit the **Profile**, **Skills**, **Experience**, **Projects**, **Certificates**, **Education**, and **Stories** tabs
+3. Changes auto-save to the database after 1.5 s when a resume is loaded
 
-The AI reads your API layer, categorizes issues by severity (duplication, fragility, security, etc.), and asks which ones you want queued as tasks.
+### Creating resume variants
 
-### Suggest improvements
+1. Go to the **Resumes** tab in `/edit`
+2. Click **Create from current** to snapshot the editor state as a new resume
+3. Toggle a resume **On** to make it publicly accessible at `/:hash`
+4. Click **Open** next to any resume to preview it in a new tab
+5. Set one resume as **Default** to use it as the home page `/`
 
-```
-suggest features
-suggest architecture improvements
-suggest refactors
-```
+### Generating a cover letter
 
-The AI generates 3–5 ideas per category, evaluates their value and risk, and queues the ones you approve.
+1. Load a resume in the editor and open the **Cover Letter** tab
+2. Paste the job description into the **Job Description** field
+3. Optionally add the hiring manager's name
+4. Click **Generate** — the letter is saved and will appear as a popup on the public resume page
 
-### Generate tests
+### Using the AI assistant
 
-```
-generate tests for the comments feature
-```
+The AI chat panel is available on the **Chat** tab in `/edit` and as a floating widget on public resume pages. Example prompts:
 
-The AI maps coverage gaps, designs test suites (unit / integration / e2e), and queues each suite as a task so test implementation goes through the normal approval cycle.
+- *"Summarise this resume in 3 bullet points"*
+- *"Add Python and FastAPI to the skills"*
+- *"Rewrite the profile summary to sound more senior"*
+- *"Generate a cover letter for a staff engineer role"*
 
-### Sync spec after manual changes
-
-If you made changes outside the workflow (hotfix, manual refactor), the spec may drift. Run:
-
-```
-sync spec
-```
-
-The AI audits the codebase against `spec/`, shows you every discrepancy, and updates the files after approval.
+Mutating actions (anything that changes data) require confirmation before the AI runs.
 
 ---
 
-## Command Reference
+## Docker
 
-| What you say | What happens |
-|---|---|
-| `init project` | Interview → build `spec/` from scratch |
-| `migrate project` | Gap-analyze old vs new project → clarify plan → queue migration tasks |
-| `implement [feature]` | Task Master refines idea → creates task file |
-| `work queue` | Pick next task → full 5-phase execution cycle |
-| `find technical debt in [area]` | Debt analysis → queue tasks |
-| `suggest features` | Feature ideas → queue approved ones |
-| `suggest architecture improvements` | Arch analysis → queue tasks |
-| `generate tests for [area]` | Test plan → queue suites |
-| `sync spec` | Audit codebase → update `spec/` files |
+```bash
+# Build and start (supply your database URL)
+DATABASE_URL=postgres://... docker compose up --build
+```
+
+The Compose file does not include a database container — point `DATABASE_URL` at an existing PostgreSQL instance. The app listens on port `3004`.
 
 ---
 
-## How the files work together
+## Deployment (Vercel)
 
-```
-CLAUDE.md                        Rules the AI follows (auto-loaded, stays at project root)
-.simple-spec/SPEC.md             Index pointing to spec/ files
-.simple-spec/spec/               Living project documentation (one file per concern)
-.simple-spec/queue_tasks/        Pending work items (one file per task)
-.simple-spec/completed_tasks/    Finished tasks, moved here after user approval
-.simple-spec/prompts/            Named workflows the AI can execute on demand
-```
+1. Import the repository in Vercel
+2. Set all environment variables from `.env.example` in the Vercel project settings
+3. `DATABASE_URL` must point to a hosted PostgreSQL instance (Neon, Supabase, Railway, etc.)
+4. Deploy — Vercel rewrites `/api/*` to the Express function automatically
 
-Tasks in `queue_tasks/` move through statuses: `draft → refined → approved → in-progress → done`
-On completion, the file is moved to `completed_tasks/` — the queue stays clean, history is preserved.
-
-The AI only writes code during Phase 3. All other phases are thinking, planning, or reviewing.
+See `docs/cloudflare-ddos-plan.md` for recommended Cloudflare configuration in front of the Vercel deployment.
 
 ---
 
-## What this is not
+## Project structure
 
-- Not a build tool or CLI
-- Not an automated pipeline — every phase requires human approval
-- Not a replacement for Git, CI, or code review
-
-It's a conversation framework. You stay in control. The AI does the thinking work between your decisions.
+```
+server/          Express API, Drizzle schema, AI service, tool definitions
+src/
+  components/    UI components (portfolio sections, chat, editor pieces)
+  pages/         Route pages — Index, ResumeHashPage, EditPage, NotFound
+  lib/           API client, PDF export, portfolio store, visibility helpers
+  types/         Portfolio TypeScript types
+  data/          Bundled portfolio.json fallback data
+docs/            Deployment and operations guides
+```

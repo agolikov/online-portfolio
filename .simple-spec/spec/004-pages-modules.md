@@ -48,8 +48,8 @@
 | api | `POST /api/chat/:hash` | Runs assistant with tool calling over a resume. | done |
 | service | `server/ai.ts` | OpenAI-compatible client, system prompt, tool execution, and cover-letter generation. | done |
 | config | `server/tools.json` | Tool schemas for assistant capabilities. | done |
-| feature | Confirmation cards | UI confirmation before tool mutations. | planned |
-| feature | Chat persistence | Database-backed conversation history. | planned |
+| feature | Confirmation cards | UI confirmation before tool mutations, including inferred parameters. | done |
+| feature | Chat persistence | Database-backed conversation history with clear-all control. | done |
 
 ---
 
@@ -63,8 +63,9 @@
 | api | `GET /api/resumes/:hash/cover` | Load saved cover letter. | done |
 | api | `PUT /api/resumes/:hash/cover` | Save manual cover letter edits. | done |
 | api | `POST /api/resumes/:hash/cover/generate` | Generate a cover letter via AI or fallback template. | done |
-| feature | Vacancy input | Text/file input to guide generation. | planned |
-| feature | Fit metrics | Role-fit metrics before or during generation. | planned |
+| feature | Vacancy input | Text/file input to guide generation. | done |
+| feature | Fit metrics | Role-fit metrics before or during generation. | done |
+| feature | Manual cover letters | Create or edit saved cover letters without AI generation. | done |
 
 ---
 
@@ -81,3 +82,13 @@
 | event | `theme_mode_toggled`, `color_scheme_toggled`, `accent_changed` | UI customization events. | done |
 | event | `tech_filter_applied`, `tech_filter_cleared` | Skill filtering events. | done |
 | event | `project_link_clicked` | Project outbound click event. | done |
+
+---
+
+## Module: Edge Protection
+
+**Responsibility:** Keep anonymous public resume access available while reducing abusive traffic risk.
+
+| Type | Path / Name | Description | Status |
+|------|-------------|-------------|--------|
+| doc | `docs/cloudflare-ddos-plan.md` | Cloudflare DNS proxy, WAF, rate-limit, cache, and incident-response plan. | done |

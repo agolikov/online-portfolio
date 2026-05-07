@@ -5,6 +5,7 @@ import type { Portfolio, Experience, Project, Certificate, Education, Tech, Stor
 import type { TechSuggestion } from "@/lib/resumesApi";
 import { clearPortfolioOverride, loadPortfolio, savePortfolioOverride } from "@/lib/portfolioStore";
 import { resumesApi, type ResumeRow } from "@/lib/resumesApi";
+import { isCoverLetterVisible, isStoryVisible, isVisible } from "@/lib/visibility";
 import { ChatPane } from "@/components/portfolio/ChatPane";
 import { CoverLetterPanel } from "@/components/portfolio/CoverLetterPanel";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -13,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, Save, RotateCcw, Download, Upload, Plus, Trash2,
-  ChevronDown, ChevronUp, Copy, RefreshCw, X, Eye, EyeOff, Sparkles,
+  ChevronDown, ChevronUp, Copy, RefreshCw, X, Eye, EyeOff, Sparkles, ExternalLink,
 } from "lucide-react";
 
 const inputCls =
@@ -130,10 +131,12 @@ function HighlightEditor({
 }
 
 function CardHeader({
-  title, subtitle, expanded, onToggle, onDelete,
+  title, subtitle, expanded, enabled = true, onToggle, onDelete, onEnabledChange,
 }: {
   title: string; subtitle?: string; expanded: boolean;
+  enabled?: boolean;
   onToggle: () => void; onDelete: () => void;
+  onEnabledChange?: (enabled: boolean) => void;
 }) {
   return (
     <div className="flex items-center justify-between gap-2 px-4 py-3 bg-muted/30">
@@ -148,6 +151,16 @@ function CardHeader({
           <span className="text-xs text-muted-foreground truncate">{subtitle}</span>
         )}
       </button>
+      {onEnabledChange && (
+        <label className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0" title="Show on main page">
+          {enabled ? <Eye size={14} /> : <EyeOff size={14} />}
+          <Switch
+            checked={enabled}
+            onCheckedChange={onEnabledChange}
+            aria-label={`Toggle visibility for ${title}`}
+          />
+        </label>
+      )}
       <button
         type="button"
         onClick={onDelete}
@@ -393,12 +406,20 @@ function StoriesTab({
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   function toggleExpanded(id: string) {
-    setExpanded((p) => { const s = new Set(p); s.has(id) ? s.delete(id) : s.add(id); return s; });
+    setExpanded((p) => {
+      const s = new Set(p);
+      if (s.has(id)) {
+        s.delete(id);
+      } else {
+        s.add(id);
+      }
+      return s;
+    });
   }
 
   function addQuestion(question: string) {
     const id = uid("story");
-    onChange([...stories, { id, question, answer: "" }]);
+    onChange([...stories, { id, enabled: true, question, answer: "" }]);
     setExpanded((p) => new Set([...p, id]));
   }
 
@@ -410,8 +431,8 @@ function StoriesTab({
     onChange(stories.map((s) => s.id === id ? { ...s, answer } : s));
   }
 
-  function togglePublic(id: string, visible: boolean) {
-    onChange(stories.map((s) => s.id === id ? { ...s, public: visible } : s));
+  function toggleVisible(id: string, visible: boolean) {
+    onChange(stories.map((s) => s.id === id ? { ...s, enabled: visible } : s));
   }
 
   const usedQuestions = new Set(stories.map((s) => s.question));
@@ -476,12 +497,12 @@ function StoriesTab({
                   {isOpen ? <ChevronUp size={14} className="shrink-0" /> : <ChevronDown size={14} className="shrink-0" />}
                   <span className="text-sm font-medium truncate">{story.question}</span>
                 </button>
-                <label className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-                  {story.public === false ? <EyeOff size={14} /> : <Eye size={14} />}
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0" title="Show on main page">
+                  {isStoryVisible(story) ? <Eye size={14} /> : <EyeOff size={14} />}
                   <Switch
-                    checked={story.public !== false}
-                    onCheckedChange={(checked) => togglePublic(story.id, checked)}
-                    aria-label="Toggle public access for story"
+                    checked={isStoryVisible(story)}
+                    onCheckedChange={(checked) => toggleVisible(story.id, checked)}
+                    aria-label="Toggle visibility for story"
                   />
                 </label>
                 <button
@@ -525,12 +546,19 @@ function CoverLetterTab({
 }) {
   const [jobDescription, setJobDescription] = useState(data.coverLetters?.current?.vacancyText ?? "");
   const [recipientName, setRecipientName] = useState(data.coverLetters?.current?.recipientName ?? "");
+  const [manualLetter, setManualLetter] = useState(data.coverLetters?.current?.content ?? "");
   const [generating, setGenerating] = useState(false);
+  const savedLetterRef = useRef(data.coverLetters?.current?.content ?? "");
+  const currentCoverLetter = data.coverLetters?.current;
+  const coverVisible = isCoverLetterVisible(currentCoverLetter);
 
   useEffect(() => {
-    setJobDescription(data.coverLetters?.current?.vacancyText ?? "");
-    setRecipientName(data.coverLetters?.current?.recipientName ?? "");
-  }, [data.coverLetters?.current?.vacancyText, data.coverLetters?.current?.recipientName]);
+    setJobDescription(currentCoverLetter?.vacancyText ?? "");
+    setRecipientName(currentCoverLetter?.recipientName ?? "");
+    const content = currentCoverLetter?.content ?? "";
+    setManualLetter(content);
+    savedLetterRef.current = content;
+  }, [currentCoverLetter]);
 
   async function generate() {
     if (!loadedHash || !jobDescription.trim()) return;
@@ -543,6 +571,7 @@ function CoverLetterTab({
           ...data.coverLetters,
           current: {
             content: result.coverLetter,
+            enabled: currentCoverLetter?.enabled ?? true,
             summary: result.summary,
             recipientName: result.recipientName ?? recipientName,
             vacancyText: result.vacancyText ?? jobDescription,
@@ -561,6 +590,48 @@ function CoverLetterTab({
     }
   }
 
+  async function saveManual() {
+    if (!loadedHash || !manualLetter.trim() || manualLetter === savedLetterRef.current) return;
+    try {
+      const result = await resumesApi.saveCoverLetter(loadedHash, manualLetter.trim(), jobDescription, recipientName);
+      savedLetterRef.current = result.coverLetter;
+      onChange({
+        ...data,
+        coverLetters: {
+          ...data.coverLetters,
+          current: {
+            content: result.coverLetter,
+            enabled: currentCoverLetter?.enabled ?? true,
+            summary: result.summary,
+            recipientName: result.recipientName ?? recipientName,
+            vacancyText: result.vacancyText ?? jobDescription,
+            metrics: result.metrics,
+            generatedAt: data.coverLetters?.current?.generatedAt,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      });
+      window.dispatchEvent(new CustomEvent("resume-data-changed", { detail: { hash: loadedHash } }));
+    } catch {
+      toast({ title: "Failed to save cover letter", variant: "destructive" });
+    }
+  }
+
+  function toggleCoverVisible(enabled: boolean) {
+    if (!currentCoverLetter) return;
+    onChange({
+      ...data,
+      coverLetters: {
+        ...data.coverLetters,
+        current: {
+          ...currentCoverLetter,
+          enabled,
+          updatedAt: new Date().toISOString(),
+        },
+      },
+    });
+  }
+
   if (!loadedHash) {
     return (
       <p className="mt-6 text-sm text-muted-foreground">
@@ -571,6 +642,22 @@ function CoverLetterTab({
 
   return (
     <div className="mt-6 space-y-4">
+      {currentCoverLetter?.content && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border px-4 py-3 bg-muted/30">
+          <div>
+            <p className="text-sm font-medium">Cover letter visibility</p>
+            <p className="text-xs text-muted-foreground">Controls whether the saved cover letter appears on the main portfolio page.</p>
+          </div>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+            {coverVisible ? <Eye size={14} /> : <EyeOff size={14} />}
+            <Switch
+              checked={coverVisible}
+              onCheckedChange={toggleCoverVisible}
+              aria-label="Toggle cover letter visibility"
+            />
+          </label>
+        </div>
+      )}
       <div>
         <label className={labelCls}>Job Description</label>
         <textarea
@@ -599,6 +686,17 @@ function CoverLetterTab({
       >
         <Sparkles size={12} /> {generating ? "Generating..." : "Generate"}
       </button>
+      <div>
+        <label className={labelCls}>Manual Cover Letter</label>
+        <textarea
+          rows={10}
+          className={inputCls + " resize-y"}
+          value={manualLetter}
+          onChange={(e) => setManualLetter(e.target.value)}
+          onBlur={saveManual}
+          placeholder="Write or paste a cover letter manually..."
+        />
+      </div>
       {data.coverLetters?.current?.content && (
         <CoverLetterPanel coverLetter={data.coverLetters.current} />
       )}
@@ -828,8 +926,17 @@ function ResumesTab({
                   <button onClick={() => copyLink(row.hash)} className="chip flex items-center gap-1" title="Copy share link">
                     <Copy size={11} /> Link
                   </button>
+                  <a
+                    href={`/${row.hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="chip flex items-center gap-1"
+                    title="Open resume page in new tab"
+                  >
+                    <ExternalLink size={11} /> Open
+                  </a>
                   {row.isDefault ? (
-                    <button onClick={clearDefaultRow} className="chip flex items-center gap-1" title="Clear default home resume">
+                    <button onClick={clearDefaultRow} className="chip flex items-center gap-1" data-active="true" title="Currently set as default — click to clear">
                       <X size={11} /> Default
                     </button>
                   ) : (
@@ -902,8 +1009,22 @@ function EditBody() {
       })
       .catch(() => undefined);
     return () => { mounted = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Reload data when AI chat mutates the resume in the background
+  useEffect(() => {
+    if (!loadedHash) return;
+    const handler = async (e: Event) => {
+      const { hash } = (e as CustomEvent<{ hash: string }>).detail;
+      if (hash !== loadedHash) return;
+      try {
+        const row = await resumesApi.get(loadedHash);
+        handleLoad(row.resumeData, row.hash);
+      } catch { /* silent */ }
+    };
+    window.addEventListener("resume-data-changed", handler);
+    return () => window.removeEventListener("resume-data-changed", handler);
+  }, [loadedHash]);
 
   // Auto-save to DB when data changes and a resume is loaded
   useEffect(() => {
@@ -929,7 +1050,11 @@ function EditBody() {
   function toggleExpanded(section: string, id: string) {
     setExpanded((prev) => {
       const s = new Set(prev[section]);
-      s.has(id) ? s.delete(id) : s.add(id);
+      if (s.has(id)) {
+        s.delete(id);
+      } else {
+        s.add(id);
+      }
       return { ...prev, [section]: s };
     });
   }
@@ -964,7 +1089,7 @@ function EditBody() {
     const id = uid("exp");
     setData((d) => ({
       ...d,
-      experience: [{ id, company: "", role: "", period: "", start: "", end: "", location: "", highlights: [], tech: [] }, ...d.experience],
+      experience: [{ id, enabled: true, company: "", role: "", period: "", start: "", end: "", location: "", highlights: [], tech: [] }, ...d.experience],
     }));
     setExpanded((p) => ({ ...p, exp: new Set([...p.exp, id]) }));
   };
@@ -976,7 +1101,7 @@ function EditBody() {
     setData((d) => ({ ...d, projects: d.projects.map((p) => p.id === id ? { ...p, ...patch } : p) }));
   const addProj = () => {
     const id = uid("prj");
-    setData((d) => ({ ...d, projects: [{ id, name: "", tagline: "", description: "", link: "", tech: [] }, ...d.projects] }));
+    setData((d) => ({ ...d, projects: [{ id, enabled: true, name: "", tagline: "", description: "", link: "", tech: [] }, ...d.projects] }));
     setExpanded((p) => ({ ...p, proj: new Set([...p.proj, id]) }));
   };
   const removeProj = (id: string) =>
@@ -987,7 +1112,7 @@ function EditBody() {
     setData((d) => ({ ...d, certificates: d.certificates.map((c) => c.id === id ? { ...c, ...patch } : c) }));
   const addCert = () => {
     const id = uid("cert");
-    setData((d) => ({ ...d, certificates: [{ id, name: "", issuer: "", year: "", tech: [] }, ...d.certificates] }));
+    setData((d) => ({ ...d, certificates: [{ id, enabled: true, name: "", issuer: "", year: "", tech: [] }, ...d.certificates] }));
     setExpanded((p) => ({ ...p, cert: new Set([...p.cert, id]) }));
   };
   const removeCert = (id: string) =>
@@ -999,7 +1124,7 @@ function EditBody() {
     setData((d) => ({ ...d, education: (d.education ?? []).map((e) => e.id === id ? { ...e, ...patch } : e) }));
   const addEdu = () => {
     const id = uid("edu");
-    setData((d) => ({ ...d, education: [{ id, institution: "", degree: "", field: "", period: "", start: "", end: "" }, ...(d.education ?? [])] }));
+    setData((d) => ({ ...d, education: [{ id, enabled: true, institution: "", degree: "", field: "", period: "", start: "", end: "" }, ...(d.education ?? [])] }));
     setExpanded((p) => ({ ...p, edu: new Set([...p.edu, id]) }));
   };
   const removeEdu = (id: string) =>
@@ -1126,14 +1251,16 @@ function EditBody() {
                 const open = isOpen("exp", e.id);
                 const tk = `exp-${e.id}`;
                 return (
-                  <div key={e.id} className="border border-border rounded-md overflow-hidden">
-                    <CardHeader
-                      title={e.role || "New Experience"}
-                      subtitle={e.company ? `@ ${e.company}` : undefined}
-                      expanded={open}
-                      onToggle={() => toggleExpanded("exp", e.id)}
-                      onDelete={() => removeExp(e.id)}
-                    />
+	                  <div key={e.id} className="border border-border rounded-md overflow-hidden">
+	                    <CardHeader
+	                      title={e.role || "New Experience"}
+	                      subtitle={e.company ? `@ ${e.company}` : undefined}
+	                      expanded={open}
+	                      enabled={isVisible(e)}
+	                      onToggle={() => toggleExpanded("exp", e.id)}
+	                      onDelete={() => removeExp(e.id)}
+	                      onEnabledChange={(enabled) => ue(e.id, { enabled })}
+	                    />
                     {open && (
                       <div className="px-4 py-4 grid gap-4 md:grid-cols-2">
                         <Field label="Company" value={e.company} onChange={(v) => ue(e.id, { company: v })} />
@@ -1175,14 +1302,16 @@ function EditBody() {
                 const open = isOpen("proj", p.id);
                 const tk = `proj-${p.id}`;
                 return (
-                  <div key={p.id} className="border border-border rounded-md overflow-hidden">
-                    <CardHeader
-                      title={p.name || "New Project"}
-                      subtitle={p.tagline || undefined}
-                      expanded={open}
-                      onToggle={() => toggleExpanded("proj", p.id)}
-                      onDelete={() => removeProj(p.id)}
-                    />
+	                  <div key={p.id} className="border border-border rounded-md overflow-hidden">
+	                    <CardHeader
+	                      title={p.name || "New Project"}
+	                      subtitle={p.tagline || undefined}
+	                      expanded={open}
+	                      enabled={isVisible(p)}
+	                      onToggle={() => toggleExpanded("proj", p.id)}
+	                      onDelete={() => removeProj(p.id)}
+	                      onEnabledChange={(enabled) => up(p.id, { enabled })}
+	                    />
                     {open && (
                       <div className="px-4 py-4 grid gap-4 md:grid-cols-2">
                         <Field label="Name" value={p.name} onChange={(v) => up(p.id, { name: v })} />
@@ -1216,14 +1345,16 @@ function EditBody() {
                 const open = isOpen("cert", c.id);
                 const tk = `cert-${c.id}`;
                 return (
-                  <div key={c.id} className="border border-border rounded-md overflow-hidden">
-                    <CardHeader
-                      title={c.name || "New Certificate"}
-                      subtitle={c.issuer || undefined}
-                      expanded={open}
-                      onToggle={() => toggleExpanded("cert", c.id)}
-                      onDelete={() => removeCert(c.id)}
-                    />
+	                  <div key={c.id} className="border border-border rounded-md overflow-hidden">
+	                    <CardHeader
+	                      title={c.name || "New Certificate"}
+	                      subtitle={c.issuer || undefined}
+	                      expanded={open}
+	                      enabled={isVisible(c)}
+	                      onToggle={() => toggleExpanded("cert", c.id)}
+	                      onDelete={() => removeCert(c.id)}
+	                      onEnabledChange={(enabled) => uc(c.id, { enabled })}
+	                    />
                     {open && (
                       <div className="px-4 py-4 grid gap-4 md:grid-cols-2">
                         <Field label="Name" value={c.name} onChange={(v) => uc(c.id, { name: v })} span2 />
@@ -1257,14 +1388,16 @@ function EditBody() {
               {edu.map((e) => {
                 const open = isOpen("edu", e.id);
                 return (
-                  <div key={e.id} className="border border-border rounded-md overflow-hidden">
-                    <CardHeader
-                      title={e.degree || "New Education"}
-                      subtitle={(e.shortName ?? e.institution) || undefined}
-                      expanded={open}
-                      onToggle={() => toggleExpanded("edu", e.id)}
-                      onDelete={() => removeEdu(e.id)}
-                    />
+	                  <div key={e.id} className="border border-border rounded-md overflow-hidden">
+	                    <CardHeader
+	                      title={e.degree || "New Education"}
+	                      subtitle={(e.shortName ?? e.institution) || undefined}
+	                      expanded={open}
+	                      enabled={isVisible(e)}
+	                      onToggle={() => toggleExpanded("edu", e.id)}
+	                      onDelete={() => removeEdu(e.id)}
+	                      onEnabledChange={(enabled) => uEdu(e.id, { enabled })}
+	                    />
                     {open && (
                       <div className="px-4 py-4 grid gap-4 md:grid-cols-2">
                         <Field label="Institution" value={e.institution} onChange={(v) => uEdu(e.id, { institution: v })} span2 />

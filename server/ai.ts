@@ -108,6 +108,7 @@ export function attachCoverLetter(
   generated: boolean,
   summary = summarizeCandidate(portfolio),
   recipientName = "",
+  enabled = portfolio.coverLetters?.current?.enabled ?? true,
 ): Portfolio {
   const now = new Date().toISOString();
   return {
@@ -116,6 +117,7 @@ export function attachCoverLetter(
       ...portfolio.coverLetters,
       current: {
         content: coverLetter,
+        enabled,
         summary,
         recipientName,
         vacancyText,
@@ -213,11 +215,12 @@ async function executeTool(
 
     case "save_cover_letter": {
       const content = args.content as string;
+      const enabled = typeof args.enabled === "boolean" ? args.enabled : undefined;
       const metrics = portfolio.coverLetters?.current?.metrics ?? scoreRoleFit(portfolio);
       const vacancyText = portfolio.coverLetters?.current?.vacancyText ?? "";
       const summary = portfolio.coverLetters?.current?.summary ?? summarizeCandidate(portfolio);
       const recipientName = portfolio.coverLetters?.current?.recipientName ?? "";
-      const updated = attachCoverLetter(portfolio, content, vacancyText, metrics, false, summary, recipientName);
+      const updated = attachCoverLetter(portfolio, content, vacancyText, metrics, false, summary, recipientName, enabled);
       await db.update(resumes).set({ coverLetter: content, resumeData: updated }).where(eq(resumes.hash, hash));
       return { result: "Cover letter saved. Accessible at /<hash>/cover.", updatedPortfolio: updated, coverLetterSaved: true };
     }

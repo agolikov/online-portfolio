@@ -14,6 +14,7 @@ export interface Tech {
 }
 export interface Experience {
   id: string;
+  enabled?: boolean;
   company: string;
   role: string;
   period: string;
@@ -27,6 +28,7 @@ export interface Experience {
 }
 export interface Project {
   id: string;
+  enabled?: boolean;
   name: string;
   tagline: string;
   description: string;
@@ -35,6 +37,7 @@ export interface Project {
 }
 export interface Certificate {
   id: string;
+  enabled?: boolean;
   name: string;
   issuer: string;
   year: string;
@@ -44,6 +47,7 @@ export interface Certificate {
 }
 export interface Education {
   id: string;
+  enabled?: boolean;
   institution: string;
   shortName?: string;
   degree: string;
@@ -56,8 +60,10 @@ export interface Education {
 }
 export interface Story {
   id: string;
+  enabled?: boolean;
   question: string;
   answer: string;
+  /** Legacy visibility flag. Use enabled for new data. */
   public?: boolean;
 }
 
@@ -70,6 +76,7 @@ export interface CoverLetterMetric {
 
 export interface PortfolioCoverLetter {
   content: string;
+  enabled?: boolean;
   summary?: string;
   recipientName?: string;
   vacancyText?: string;

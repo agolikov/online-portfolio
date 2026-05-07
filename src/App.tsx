@@ -7,7 +7,6 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import EditPage from "./pages/EditPage.tsx";
 import ResumeHashPage from "./pages/ResumeHashPage.tsx";
-import CoverLetterPage from "./pages/CoverLetterPage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -20,8 +19,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           {import.meta.env.DEV && <Route path="/edit" element={<EditPage />} />}
-          <Route path="/:hash/cover" element={<CoverLetterPage />} />
-          <Route path="/:hash" element={<ResumeHashPage />} />
+<Route path="/:hash" element={<ResumeHashPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -32,6 +32,7 @@
   "experience": [
     {
       "id": "exp-5",
+      "enabled": true,
       "company": "Acme Corporation",
       "role": "Senior Software Engineer",
       "period": "Jan 2022 — Present",
@@ -47,6 +48,7 @@
     },
     {
       "id": "exp-4",
+      "enabled": true,
       "company": "Lorem Technologies",
       "role": "Software Engineer",
       "period": "Mar 2020 — Dec 2021",
@@ -62,6 +64,7 @@
     },
     {
       "id": "exp-3",
+      "enabled": true,
       "company": "Ipsum Systems",
       "role": "Full Stack Developer",
       "period": "Jun 2018 — Feb 2020",
@@ -77,6 +80,7 @@
     },
     {
       "id": "exp-2",
+      "enabled": true,
       "company": "Dolor & Associates",
       "role": "Junior Developer",
       "period": "Aug 2016 — May 2018",
@@ -94,6 +98,7 @@
   "projects": [
     {
       "id": "prj-1",
+      "enabled": true,
       "name": "Lorem Studio",
       "tagline": "Sample open-source project",
       "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Used by 5K+ developers and downloaded 500K+ times monthly.",
@@ -102,6 +107,7 @@
     },
     {
       "id": "prj-2",
+      "enabled": true,
       "name": "Ipsum CLI",
       "tagline": "Sample command-line tool",
       "description": "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Lightweight TypeScript tool with zero dependencies.",
@@ -110,6 +116,7 @@
     },
     {
       "id": "prj-3",
+      "enabled": true,
       "name": "Dolor Dashboard",
       "tagline": "Sample analytics dashboard",
       "description": "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Real-time data visualization for teams of all sizes.",
@@ -120,6 +127,7 @@
   "education": [
     {
       "id": "edu-1",
+      "enabled": true,
       "institution": "University of Lorem Ipsum",
       "shortName": "ULI",
       "degree": "Bachelor of Science",
@@ -134,16 +142,19 @@
   "stories": [
     {
       "id": "story-1",
+      "enabled": true,
       "question": "Tell me about a time you led a difficult project.",
       "answer": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Situation: sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Task: ut enim ad minim veniam, quis nostrud exercitation ullamco. Action: duis aute irure dolor in reprehenderit in voluptate velit esse cillum. Result: excepteur sint occaecat cupidatat non proident, reducing time-to-delivery by 30%."
     },
     {
       "id": "story-2",
+      "enabled": true,
       "question": "Describe a situation where you disagreed with a colleague. How did you handle it?",
       "answer": "Situation: at vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis. Task: nemo enim ipsam voluptatem quia voluptas sit aspernatur. Action: neque porro quisquam est qui dolorem ipsum quia dolor sit amet. Result: ut labore et dolore magnam aliquam quaerat voluptatem, reaching a consensus that improved the architecture."
     },
     {
       "id": "story-3",
+      "enabled": true,
       "question": "Give an example of a time you had to meet a tight deadline.",
       "answer": "Situation: temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet. Task: itaque earum rerum hic tenetur a sapiente delectus. Action: quis autem vel eum iure reprehenderit qui in ea voluptate velit. Result: shipped on time with zero critical bugs and received positive feedback from stakeholders."
     }
@@ -151,6 +162,7 @@
   "certificates": [
     {
       "id": "cert-1",
+      "enabled": true,
       "name": "Lorem Ipsum Certification",
       "issuer": "Sample Institute",
       "year": "2024",
@@ -160,6 +172,7 @@
     },
     {
       "id": "cert-2",
+      "enabled": true,
       "name": "Dolor Sit Amet Professional",
       "issuer": "Ipsum Academy",
       "year": "2023",
@@ -169,6 +182,7 @@
     },
     {
       "id": "cert-3",
+      "enabled": true,
       "name": "Consectetur Adipiscing Expert",
       "issuer": "Amet Certifications",
       "year": "2022",

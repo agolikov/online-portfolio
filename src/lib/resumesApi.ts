@@ -30,6 +30,7 @@ export interface ChatHistoryMessage extends ChatMessage {
 
 export interface CoverLetterResponse {
   coverLetter: string;
+  enabled?: boolean;
   summary: string;
   recipientName?: string;
   metrics: CoverLetterMetric[];

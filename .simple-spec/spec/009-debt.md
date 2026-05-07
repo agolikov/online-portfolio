@@ -14,4 +14,5 @@
 - New chat persistence, action confirmation, story visibility, and cover-letter metric flows have build coverage but no focused unit/integration tests — severity: medium.
 - API contract is implicit in `server/app.ts` and `src/lib/resumesApi.ts`; there is no OpenAPI/schema validation boundary — severity: low.
 - Vercel deployment config is present, but there is no automated preview-deployment smoke test for SPA fallback routes or `/api/*` rewrites — severity: medium.
-- Deployment, production hosting, and secrets management are not documented — severity: medium.
+- Cloudflare DDoS mitigation is documented (`docs/cloudflare-ddos-plan.md`) and server-side `express-rate-limit` defence-in-depth is implemented; the production Cloudflare account still needs DNS proxy, WAF, and cache rules configured — severity: low.
+- Deployment secrets management is not documented — severity: medium.

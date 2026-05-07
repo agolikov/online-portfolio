@@ -14,9 +14,18 @@ import { StoriesList } from "@/components/portfolio/StoriesList";
 import { CoverLetterPanel } from "@/components/portfolio/CoverLetterPanel";
 import { exportPortfolioPdf } from "@/lib/exportPdf";
 import { resumesApi } from "@/lib/resumesApi";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { isCoverLetterVisible, isStoryVisible, isVisible } from "@/lib/visibility";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import staticData from "@/data/portfolio.json";
 import type { Experience } from "@/types/portfolio";
+
+const EXTRA_TECH: Tech[] = [
+  { name: "Git",         category: "Tool" },
+  { name: "Azure DevOps",category: "Tool" },
+  { name: "TeamCity",    category: "Tool" },
+  { name: "Linux",       category: "OS"   },
+  { name: "macOS",       category: "OS"   },
+];
 
 function parseTechParam(s: string | null): string[] {
   if (!s) return [];
@@ -50,32 +59,30 @@ export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {
   // Merge store experience with static tech arrays so year counters are accurate
   // even when localStorage predates the latest tech tag additions.
   const experienceForYears = useMemo<Experience[]>(() => {
-    return data.experience.map((e) => {
+    return data.experience.filter(isVisible).map((e) => {
       const staticExp = (staticData.experience as Experience[]).find((s) => s.id === e.id);
       if (!staticExp) return e;
       return { ...e, tech: [...new Set([...e.tech, ...staticExp.tech])] };
     });
   }, [data.experience]);
 
-  const EXTRA_TECH: Tech[] = [
-    { name: "Git",         category: "Tool" },
-    { name: "Azure DevOps",category: "Tool" },
-    { name: "TeamCity",    category: "Tool" },
-    { name: "Linux",       category: "OS"   },
-    { name: "macOS",       category: "OS"   },
-  ];
+  const visibleExperience = useMemo(() => data.experience.filter(isVisible), [data.experience]);
+  const visibleProjects = useMemo(() => data.projects.filter(isVisible), [data.projects]);
+  const visibleCertificates = useMemo(() => (data.certificates ?? []).filter(isVisible), [data.certificates]);
+  const visibleEducation = useMemo(() => (data.education ?? []).filter(isVisible), [data.education]);
+  const visibleStories = useMemo(() => (data.stories ?? []).filter(isStoryVisible), [data.stories]);
 
   const allTech = useMemo<Tech[]>(() => {
     const existing = new Set(data.tech.map((t) => t.name));
     const extras = EXTRA_TECH.filter((t) => !existing.has(t.name));
     const merged = [...data.tech, ...extras];
     const mergedNames = new Set(merged.map((t) => t.name));
-    const eduSkills = (data.education ?? [])
+    const eduSkills = visibleEducation
       .flatMap((e) => e.skills ?? [])
       .filter((s, i, arr) => arr.indexOf(s) === i && !mergedNames.has(s))
       .map((s) => ({ name: s, category: "Fundamentals" }));
     return [...merged, ...eduSkills];
-  }, [data.tech, data.education]);
+  }, [data.tech, visibleEducation]);
 
   // Initialize from URL ?tech=Go,Kafka, then validate against known tech names.
   const knownNames = new Set(allTech.map((t) => t.name));
@@ -98,6 +105,14 @@ export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {
   }
 
   const currentCoverLetter = data.coverLetters?.current;
+  const visibleCoverLetter = isCoverLetterVisible(currentCoverLetter) ? currentCoverLetter : undefined;
+  const [coverOpen, setCoverOpen] = useState(false);
+
+  useEffect(() => {
+    if (defaultLoaded && visibleCoverLetter?.content) {
+      setCoverOpen(true);
+    }
+  }, [defaultLoaded, visibleCoverLetter?.content]);
 
   return (
     <div className="min-h-screen px-3 py-4 md:px-6 md:py-8">
@@ -107,13 +122,13 @@ export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {
         )}
         <ControlBar onExport={() => exportPortfolioPdf(data, selected)} />
         <Header profile={data.profile} />
-        {currentCoverLetter?.content && (
+        {visibleCoverLetter?.content && (
           <div className="paper px-4 py-3 md:px-10 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-widest">Cover Letter</h2>
-              <p className="mt-1 text-xs text-muted-foreground">Generated for this resume.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Saved for this resume.</p>
             </div>
-            <Dialog>
+            <Dialog open={coverOpen} onOpenChange={setCoverOpen}>
               <DialogTrigger asChild>
                 <button type="button" className="chip" data-active="true">
                   Show Cover Letter
@@ -122,8 +137,11 @@ export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {
               <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Cover Letter</DialogTitle>
+                  <DialogDescription className="sr-only">
+                    Saved cover letter and role-fit summary for this resume.
+                  </DialogDescription>
                 </DialogHeader>
-                <CoverLetterPanel coverLetter={currentCoverLetter} />
+                <CoverLetterPanel coverLetter={visibleCoverLetter} />
               </DialogContent>
             </Dialog>
           </div>
@@ -137,20 +155,20 @@ export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {
             onClear={() => setSelected([])}
           />
         )}
-        {data.experience.length > 0 && (
-          <ExperienceList experience={data.experience} selected={selected} onToggle={toggle} />
+        {visibleExperience.length > 0 && (
+          <ExperienceList experience={visibleExperience} selected={selected} onToggle={toggle} />
         )}
-        {data.projects.length > 0 && (
-          <ProjectGrid projects={data.projects} selected={selected} onToggle={toggle} />
+        {visibleProjects.length > 0 && (
+          <ProjectGrid projects={visibleProjects} selected={selected} onToggle={toggle} />
         )}
-        {(data.certificates ?? []).length > 0 && (
-          <CertificateList certificates={data.certificates ?? []} selected={selected} />
+        {visibleCertificates.length > 0 && (
+          <CertificateList certificates={visibleCertificates} selected={selected} />
         )}
-        {(data.education ?? []).length > 0 && (
-          <EducationList education={data.education!} />
+        {visibleEducation.length > 0 && (
+          <EducationList education={visibleEducation} />
         )}
-        {(data.stories ?? []).filter((story) => story.public !== false).length > 0 && (
-          <StoriesList stories={(data.stories ?? []).filter((story) => story.public !== false)} />
+        {visibleStories.length > 0 && (
+          <StoriesList stories={visibleStories} />
         )}
         <ContactForm profile={data.profile} />
 

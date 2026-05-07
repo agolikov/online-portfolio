@@ -12,7 +12,6 @@ if (process.env.NODE_ENV !== "production") {
     appType: "spa",
     server: {
       middlewareMode: true,
-      hmr: true,
     },
   });
   app.use(vite.middlewares);

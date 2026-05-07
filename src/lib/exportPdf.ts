@@ -1,18 +1,23 @@
 import { jsPDF } from "jspdf";
 import type { Portfolio } from "@/types/portfolio";
+import { isVisible } from "@/lib/visibility";
 
 export function exportPortfolioPdf(data: Portfolio, selectedTech: string[]) {
   const { profile, experience, projects, certificates = [], education = [] } = data;
+  const visibleExperience = experience.filter(isVisible);
+  const visibleProjects = projects.filter(isVisible);
+  const visibleCertificates = certificates.filter(isVisible);
+  const visibleEducation = education.filter(isVisible);
 
   const expFiltered = selectedTech.length === 0
-    ? experience
-    : experience.filter((e) => e.tech.some((t) => selectedTech.includes(t)));
+    ? visibleExperience
+    : visibleExperience.filter((e) => e.tech.some((t) => selectedTech.includes(t)));
   const prjFiltered = selectedTech.length === 0
-    ? projects
-    : projects.filter((p) => p.tech.some((t) => selectedTech.includes(t)));
+    ? visibleProjects
+    : visibleProjects.filter((p) => p.tech.some((t) => selectedTech.includes(t)));
   const certFiltered = selectedTech.length === 0
-    ? certificates
-    : certificates.filter((c) => c.tech?.some((t) => selectedTech.includes(t)));
+    ? visibleCertificates
+    : visibleCertificates.filter((c) => c.tech?.some((t) => selectedTech.includes(t)));
 
    const doc = new jsPDF({ unit: "pt", format: "a4" });
    const W = doc.internal.pageSize.getWidth();
@@ -81,13 +86,7 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[]) {
   text(profile.summary, { size: 10, color: 60, gap: 3 });
   y += 6;
 
-  if (selectedTech.length > 0) {
-    text("ACTIVE FILTER", { size: 8, bold: true, color: 100 });
-    text(selectedTech.join(" · "), { size: 10, bold: true, color: 20 });
-    y += 4;
-  }
-
-   // Experience
+	 // Experience
    if (expFiltered.length > 0) {
      rule();
      y += 4;
@@ -193,13 +192,13 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[]) {
    }
 
    // Education
-   if (education.length > 0) {
+   if (visibleEducation.length > 0) {
      rule();
      y += 4;
      text("EDUCATION", SECTION_TITLE_OPTS);
      y += SECTION_GAP_AFTER_TITLE;
 
-     education.forEach((edu) => {
+     visibleEducation.forEach((edu) => {
        ensure(50);
        doc.setFont("helvetica", "bold");
        doc.setFontSize(10);
