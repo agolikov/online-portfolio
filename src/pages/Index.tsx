@@ -12,7 +12,6 @@ import { EducationList } from "@/components/portfolio/EducationList";
 import { ContactForm } from "@/components/portfolio/ContactForm";
 import { StoriesList } from "@/components/portfolio/StoriesList";
 import { CoverLetterPanel } from "@/components/portfolio/CoverLetterPanel";
-import { exportPortfolioPdf } from "@/lib/exportPdf";
 import { resumesApi } from "@/lib/resumesApi";
 import { isCoverLetterVisible, isStoryVisible, isVisible } from "@/lib/visibility";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -104,6 +103,11 @@ export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {
     setSelected((s) => (s.includes(name) ? s.filter((x) => x !== name) : [...s, name]));
   }
 
+  async function exportPdf() {
+    const { exportPortfolioPdf } = await import("@/lib/exportPdf");
+    exportPortfolioPdf(data, selected);
+  }
+
   const currentCoverLetter = data.coverLetters?.current;
   const visibleCoverLetter = isCoverLetterVisible(currentCoverLetter) ? currentCoverLetter : undefined;
   const [coverOpen, setCoverOpen] = useState(false);
@@ -115,15 +119,15 @@ export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {
   }, [defaultLoaded, visibleCoverLetter?.content]);
 
   return (
-    <div className="min-h-screen px-3 py-4 md:px-6 md:py-8">
-      <main className="mx-auto flex max-w-4xl flex-col gap-4 md:gap-8">
+    <div className="min-h-screen px-4 py-4 md:px-6 md:py-6">
+      <main className="mx-auto flex max-w-5xl flex-col gap-6 md:gap-10">
         {!defaultLoaded && (
           <div className="paper px-4 py-3 text-sm text-muted-foreground">Loading...</div>
         )}
-        <ControlBar onExport={() => exportPortfolioPdf(data, selected)} />
+        <ControlBar onExport={exportPdf} />
         <Header profile={data.profile} />
         {visibleCoverLetter?.content && (
-          <div className="paper px-4 py-3 md:px-10 flex flex-wrap items-center justify-between gap-3">
+          <div className="paper rule flex flex-wrap items-center justify-between gap-3 px-4 py-4 md:px-6">
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-widest">Cover Letter</h2>
               <p className="mt-1 text-xs text-muted-foreground">Saved for this resume.</p>

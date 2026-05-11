@@ -13,8 +13,8 @@ export function CertificateList({ certificates, selected }: Props) {
       : certificates.filter((c) => c.tech?.some((t) => selected.includes(t)));
 
   return (
-    <section className="paper px-4 py-4 md:px-10 md:py-6 animate-fade-in">
-      <div className="mb-4 md:mb-6 flex items-end justify-between">
+    <section className="paper rule animate-fade-in px-4 py-6 md:px-6 md:py-8">
+      <div className="mb-5 flex items-end justify-between md:mb-7">
         <h2 className="section-title">Certificates</h2>
         <span className="text-xs uppercase tracking-widest text-muted-foreground">
           {filtered.length}/{certificates.length} matching
@@ -27,7 +27,7 @@ export function CertificateList({ certificates, selected }: Props) {
 
       <ul className="grid gap-3 md:grid-cols-2">
         {filtered.map((c) => (
-          <li key={c.id} className="flex items-start gap-3 border border-border p-4 rounded-md">
+          <li key={c.id} className="flex items-start gap-3 rounded-lg border border-border bg-card p-4">
             <Award size={18} className="mt-0.5 shrink-0 accent-text" />
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-2">

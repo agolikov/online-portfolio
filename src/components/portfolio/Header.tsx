@@ -11,46 +11,46 @@ function GithubIcon({ size = 14 }: { size?: number }) {
 
 export function Header({ profile }: { profile: Profile }) {
   return (
-    <header className="paper px-4 py-6 md:px-10 md:py-12 animate-fade-in">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <header className="paper animate-fade-in px-4 py-6 md:px-6 md:py-8">
+      <div className="grid gap-5 md:grid-cols-[minmax(0,0.85fr)_minmax(280px,1fr)] md:items-end">
         <div>
-          <h1 className="text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
+          <h1 className="max-w-sm text-3xl font-semibold leading-[1.05] tracking-tight md:text-5xl">
             {profile.name}
           </h1>
-          <p className="mt-1.5 text-lg accent-text font-medium md:text-xl">{profile.title}</p>
+          <p className="accent-text mt-2 text-lg font-medium md:text-xl">{profile.title}</p>
         </div>
 
-        <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
+        <div className="grid gap-x-5 gap-y-2 text-sm text-muted-foreground sm:grid-cols-2">
           {profile.email && (
-            <a href={`mailto:${profile.email}`} className="flex items-center gap-1.5 hover:underline">
+            <a href={`mailto:${profile.email}`} className="flex min-w-0 items-center gap-2 hover:text-foreground">
               <Mail size={14} className="accent-text shrink-0" /> {profile.email}
             </a>
           )}
           {profile.website && (
-            <a href={`https://${profile.website}`} className="flex items-center gap-1.5 hover:underline">
+            <a href={`https://${profile.website}`} className="flex min-w-0 items-center gap-2 hover:text-foreground">
               <Globe size={14} className="accent-text shrink-0" /> {profile.website}
             </a>
           )}
           {profile.github && (
-            <a href={`https://${profile.github}`} className="flex items-center gap-1.5 hover:underline">
+            <a href={`https://${profile.github}`} className="flex min-w-0 items-center gap-2 hover:text-foreground">
               <GithubIcon size={14} /> {profile.github.replace("github.com/", "")}
             </a>
           )}
           {profile.linkedin && (
-            <a href={`https://${profile.linkedin}`} className="flex items-center gap-1.5 hover:underline">
+            <a href={`https://${profile.linkedin}`} className="flex min-w-0 items-center gap-2 hover:text-foreground">
               <Linkedin size={14} className="accent-text shrink-0" /> {profile.linkedin.replace("linkedin.com/in/", "")}
             </a>
           )}
           {profile.location && (
-            <span className="flex items-center gap-1.5">
+            <span className="flex min-w-0 items-center gap-2 sm:col-span-2">
               <MapPin size={14} className="accent-text shrink-0" /> {profile.location}
             </span>
           )}
         </div>
       </div>
 
-      <div className="rule mt-5 pt-4 md:mt-8 md:pt-6">
-        <p className="max-w-3xl text-base leading-relaxed text-muted-foreground">
+      <div className="rule mt-6 pt-5 md:mt-8 md:pt-6">
+        <p className="max-w-4xl text-base leading-7 text-muted-foreground md:text-lg">
           {profile.summary}
         </p>
       </div>

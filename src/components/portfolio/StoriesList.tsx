@@ -18,14 +18,14 @@ export function StoriesList({ stories }: { stories: Story[] }) {
   }
 
   return (
-    <section className="paper px-4 py-4 md:px-10 md:py-6 animate-fade-in">
-      <h2 className="section-title mb-4 md:mb-6">Stories</h2>
+    <section className="paper rule animate-fade-in px-4 py-6 md:px-6 md:py-8">
+      <h2 className="section-title mb-5 md:mb-7">Stories</h2>
 
       <div className="space-y-2">
         {stories.map((story) => {
           const isOpen = open.has(story.id);
           return (
-            <div key={story.id} className="border border-border rounded-md overflow-hidden">
+            <div key={story.id} className="overflow-hidden rounded-lg border border-border bg-card">
               <button
                 type="button"
                 onClick={() => toggle(story.id)}

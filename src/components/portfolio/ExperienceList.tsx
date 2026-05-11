@@ -13,8 +13,8 @@ export function ExperienceList({ experience, selected, onToggle }: Props) {
       : experience.filter((e) => e.tech.some((t) => selected.includes(t)));
 
   return (
-    <section className="paper px-4 py-4 md:px-10 md:py-6 animate-fade-in">
-      <div className="mb-4 md:mb-6 flex items-end justify-between">
+    <section className="paper rule animate-fade-in px-4 py-6 md:px-6 md:py-8">
+      <div className="mb-5 flex items-end justify-between md:mb-7">
         <h2 className="section-title">Experience</h2>
         <span className="text-xs uppercase tracking-widest text-muted-foreground">
           {filtered.length}/{experience.length} matching
@@ -25,12 +25,12 @@ export function ExperienceList({ experience, selected, onToggle }: Props) {
         <p className="text-sm text-muted-foreground">No experience matches the selected tech.</p>
       )}
 
-      <div className="space-y-6">
+      <div className="space-y-7">
         {filtered.map((e) => (
-          <article key={e.id} className="rule pt-6 first:border-t-0 first:pt-0">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <article key={e.id} className="rule pt-7 first:border-t-0 first:pt-0">
+            <div className="grid gap-2 md:grid-cols-[1fr_auto] md:items-start">
               <div>
-                <h3 className="text-lg font-bold">
+                <h3 className="text-lg font-semibold leading-snug">
                   {e.role} <span className="accent-text">@ {e.company}</span>
                 </h3>
                 <p className="text-xs uppercase tracking-widest text-muted-foreground">

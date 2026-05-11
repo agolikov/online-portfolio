@@ -31,7 +31,7 @@ export function ControlBar({ onExport }: Props) {
   const isDark = scheme === "dark";
 
   return (
-    <div className="paper w-full sticky top-3 z-30 mx-auto mb-6 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 print:hidden bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70 border-b border-border">
+    <div className="toolbar-surface sticky top-3 z-30 mx-auto mb-8 flex w-full flex-wrap items-center justify-between gap-3 px-4 py-2.5 print:hidden backdrop-blur supports-[backdrop-filter]:bg-background/75">
       {/* Left: colorful toggle */}
       <label className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground cursor-pointer">
         <span className={!isBoring ? "text-foreground font-medium" : ""}>Color</span>
@@ -49,7 +49,7 @@ export function ControlBar({ onExport }: Props) {
       <div className="flex items-center gap-1.5">
         {/* Accent swatches (colorful mode only) */}
         {!isBoring && (
-          <div className="flex items-center gap-1.5 mr-1">
+          <div className="mr-1 flex items-center gap-1.5">
             <Palette size={14} className="text-muted-foreground" />
             {ACCENTS.map((a) => (
               <Tooltip key={a}>
@@ -57,7 +57,7 @@ export function ControlBar({ onExport }: Props) {
                   <button
                     aria-label={`Accent ${a}`}
                     onClick={() => { posthog.capture("accent_changed", { accent: a }); setAccent(a); }}
-                    className="h-5 w-5 rounded-full border-2 transition-transform hover:scale-110"
+                    className="h-5 w-5 rounded-full border transition-transform hover:scale-110"
                     style={{
                       background: ACCENT_PREVIEW[a],
                       borderColor: accent === a ? "hsl(var(--foreground))" : "transparent",
@@ -126,7 +126,7 @@ export function ControlBar({ onExport }: Props) {
               aria-label="Download PDF"
             >
               <FileDown size={13} />
-              <span className="text-xs">Download PDF</span>
+              <span className="hidden text-xs sm:inline">Download PDF</span>
             </button>
           </TooltipTrigger>
           <TooltipContent>Download PDF</TooltipContent>

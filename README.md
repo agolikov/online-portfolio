@@ -35,7 +35,7 @@ A full-stack personal portfolio and resume application. Share your professional 
 | Persisted chat history | Conversation stored per resume in the database; clearable |
 | PostHog analytics | Contact form, PDF export, GitHub clicks, theme changes, tech filter, project clicks |
 | Rate limiting | 120 req/min general; 10 req/min on AI chat and cover-generation endpoints |
-| Docker support | Dockerfile + Compose on port 3004; expects an external PostgreSQL URL |
+| Docker support | Dockerfile + Compose on port 3010; expects an external PostgreSQL URL |
 
 ---
 
@@ -105,7 +105,7 @@ pnpm db:seed        # optional — seed tech suggestions
 pnpm dev
 ```
 
-Opens at `http://localhost:3004`. The Express API and Vite frontend run on the same port.
+Opens at `http://localhost:3010`. The Express API and Vite frontend run on the same port.
 
 ---
 
@@ -113,7 +113,7 @@ Opens at `http://localhost:3004`. The Express API and Vite frontend run on the s
 
 ### Editing your portfolio
 
-1. Open `http://localhost:3004/edit`
+1. Open `http://localhost:3010/edit`
 2. Edit the **Profile**, **Skills**, **Experience**, **Projects**, **Certificates**, **Education**, and **Stories** tabs
 3. Changes auto-save to the database after 1.5 s when a resume is loaded
 
@@ -143,6 +143,48 @@ The AI chat panel is available on the **Chat** tab in `/edit` and as a floating 
 
 Mutating actions (anything that changes data) require confirmation before the AI runs.
 
+### MCP data server
+
+The app server exposes a Streamable HTTP MCP endpoint for direct portfolio data manipulation:
+
+```bash
+pnpm dev
+```
+
+MCP endpoint:
+
+```txt
+http://localhost:3010/mcp
+```
+
+The MCP endpoint runs inside the same Express app as the portfolio UI and API, so it uses the same `.env` and the same `DATABASE_URL`. There is no separate MCP process or database configuration when the app server is already running.
+
+Example MCP client configuration for clients that support Streamable HTTP:
+
+```json
+{
+  "mcpServers": {
+    "online-portfolio-data": {
+      "url": "http://localhost:3010/mcp"
+    }
+  }
+}
+```
+
+Available tool groups:
+
+- Resume admin: `list_resumes`, `get_resume`, `get_default_resume`, `create_resume`, `replace_resume`, `delete_resume`, `set_resume_enabled`, `set_default_resume`, `clear_default_resume`, `update_resume_note`
+- Portfolio sections: `update_profile`, `update_profile_field`, `update_skills`, `update_experience`, `update_projects`, `update_certificates`, `update_education`, `update_stories`
+- Cover letters and matching: `save_cover_letter`, `score_role_fit`
+- Supporting data: `list_tech_suggestions`, `list_chat_history`, `clear_chat_history`
+
+Typical workflow:
+
+1. Call `list_resumes` to find the resume hash.
+2. Call `get_resume` before making changes, so unchanged data can be preserved.
+3. Use the relevant `update_*` tool. Section update tools replace that whole section, so pass the complete updated section.
+4. Open `http://localhost:3010/:hash` or `/edit` to review the updated portfolio.
+
 ---
 
 ## Docker
@@ -152,7 +194,7 @@ Mutating actions (anything that changes data) require confirmation before the AI
 DATABASE_URL=postgres://... docker compose up --build
 ```
 
-The Compose file does not include a database container — point `DATABASE_URL` at an existing PostgreSQL instance. The app listens on port `3004`.
+The Compose file does not include a database container — point `DATABASE_URL` at an existing PostgreSQL instance. The app listens on port `3010`.
 
 ---
 

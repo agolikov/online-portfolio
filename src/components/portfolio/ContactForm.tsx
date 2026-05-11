@@ -36,10 +36,10 @@ export function ContactForm({ profile }: { profile: Profile }) {
   }
 
   const inputCls =
-    "w-full bg-transparent border border-border px-3 py-2 text-sm outline-none focus:border-foreground focus:ring-0 placeholder:text-muted-foreground";
+    "w-full rounded-md border border-border bg-card px-3 py-2 text-sm outline-none transition-colors focus:border-foreground focus:ring-0 placeholder:text-muted-foreground";
 
   return (
-    <section className="paper px-6 py-6 md:px-10 animate-fade-in">
+    <section className="paper rule animate-fade-in px-4 py-6 md:px-6 md:py-8">
       <div className="mb-6">
         <h2 className="section-title">Contact</h2>
         <p className="mt-1 text-sm text-muted-foreground">

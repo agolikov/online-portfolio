@@ -4,7 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import app from "./app.js";
 
-const PORT = Number(process.env.PORT ?? 3004);
+const PORT = Number(process.env.PORT ?? 3010);
 
 if (process.env.NODE_ENV !== "production") {
   const { createServer: createViteServer } = await import("vite");

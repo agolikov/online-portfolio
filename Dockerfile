@@ -17,8 +17,8 @@ ENV VITE_POSTHOG_HOST=$VITE_POSTHOG_HOST
 RUN pnpm run build
 
 ENV NODE_ENV=production
-ENV PORT=3004
+ENV PORT=3010
 
-EXPOSE 3004
+EXPOSE 3010
 
 CMD ["pnpm", "run", "start"]

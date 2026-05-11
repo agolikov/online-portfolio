@@ -15,8 +15,8 @@ export function ProjectGrid({ projects, selected, onToggle }: Props) {
       : projects.filter((p) => p.tech.some((t) => selected.includes(t)));
 
   return (
-    <section className="paper px-4 py-4 md:px-10 md:py-6 animate-fade-in">
-      <div className="mb-4 md:mb-6 flex items-end justify-between">
+    <section className="paper rule animate-fade-in px-4 py-6 md:px-6 md:py-8">
+      <div className="mb-5 flex items-end justify-between md:mb-7">
         <h2 className="section-title">Projects</h2>
         <span className="text-xs uppercase tracking-widest text-muted-foreground">
           {filtered.length}/{projects.length} matching
@@ -27,11 +27,11 @@ export function ProjectGrid({ projects, selected, onToggle }: Props) {
         <p className="text-sm text-muted-foreground">No projects match the selected tech.</p>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         {filtered.map((p) => (
           <div
             key={p.id}
-            className="flex flex-col gap-2 px-5 py-4 border border-border rounded-md bg-background"
+            className="flex flex-col gap-2 rounded-lg border border-border bg-card px-4 py-4"
           >
             <a
               href={`https://${p.link}`}
@@ -40,7 +40,7 @@ export function ProjectGrid({ projects, selected, onToggle }: Props) {
               className="group flex items-baseline justify-between hover:underline"
               onClick={() => posthog.capture("project_link_clicked", { project: p.name, project_url: p.link })}
             >
-              <h3 className="text-lg font-bold accent-text">{p.name}</h3>
+              <h3 className="accent-text text-lg font-semibold">{p.name}</h3>
               <ExternalLink size={14} className="opacity-50 group-hover:opacity-100 shrink-0" />
             </a>
             <p className="text-sm font-medium">{p.tagline}</p>

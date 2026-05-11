@@ -1213,14 +1213,46 @@ function EditBody() {
           }
         </p>
 
-        <Tabs defaultValue="profile">
+        <Tabs defaultValue="resumes">
           <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
-            {(["profile", "tech", "experience", "projects", "certificates", "education", "stories", "cover", "chat", "resumes"] as const).map((t) => (
-              <TabsTrigger key={t} value={t} className="text-xs uppercase tracking-widest">
-                {t}
+            {([
+              ["resumes", "resumes"],
+              ["cover", "cover"],
+              ["chat", "chat"],
+              ["profile", "profile"],
+              ["tech", "tech"],
+              ["experience", "experience"],
+              ["certificates", "certificates"],
+              ["projects", "side projects"],
+              ["education", "education"],
+              ["stories", "stories"],
+            ] as const).map(([value, label]) => (
+              <TabsTrigger key={value} value={value} className="text-xs uppercase tracking-widest">
+                {label}
               </TabsTrigger>
             ))}
           </TabsList>
+
+          {/* ── RESUMES ── */}
+          <TabsContent value="resumes">
+            <ResumesTab currentData={data} loadedHash={loadedHash} onLoad={handleLoad} />
+          </TabsContent>
+
+          {/* ── COVER LETTER ── */}
+          <TabsContent value="cover">
+            <CoverLetterTab data={data} loadedHash={loadedHash} onChange={setData} />
+          </TabsContent>
+
+          {/* ── CHAT ── */}
+          <TabsContent value="chat">
+            {loadedHash ? (
+              <ChatPane hash={loadedHash} messagesHeight="28rem" />
+            ) : (
+              <p className="mt-6 text-sm text-muted-foreground">
+                Load a resume from the <strong>Resumes</strong> tab first — the AI needs a specific resume as context.
+              </p>
+            )}
+          </TabsContent>
 
           {/* ── PROFILE ── */}
           <TabsContent value="profile" className="mt-6 grid gap-4 md:grid-cols-2">
@@ -1290,11 +1322,11 @@ function EditBody() {
             </div>
           </TabsContent>
 
-          {/* ── PROJECTS ── */}
+          {/* ── SIDE PROJECTS ── */}
           <TabsContent value="projects" className="mt-6">
             <div className="mb-3 flex justify-end">
               <button onClick={addProj} className="chip flex items-center gap-1.5">
-                <Plus size={12} /> Add Project
+                <Plus size={12} /> Add Side Project
               </button>
             </div>
             <div className="space-y-2">
@@ -1304,7 +1336,7 @@ function EditBody() {
                 return (
 	                  <div key={p.id} className="border border-border rounded-md overflow-hidden">
 	                    <CardHeader
-	                      title={p.name || "New Project"}
+	                      title={p.name || "New Side Project"}
 	                      subtitle={p.tagline || undefined}
 	                      expanded={open}
 	                      enabled={isVisible(p)}
@@ -1418,27 +1450,6 @@ function EditBody() {
           {/* ── STORIES ── */}
           <TabsContent value="stories">
             <StoriesTab stories={data.stories ?? []} onChange={setStories} />
-          </TabsContent>
-
-          {/* ── COVER LETTER ── */}
-          <TabsContent value="cover">
-            <CoverLetterTab data={data} loadedHash={loadedHash} onChange={setData} />
-          </TabsContent>
-
-          {/* ── CHAT ── */}
-          <TabsContent value="chat">
-            {loadedHash ? (
-              <ChatPane hash={loadedHash} messagesHeight="28rem" />
-            ) : (
-              <p className="mt-6 text-sm text-muted-foreground">
-                Load a resume from the <strong>Resumes</strong> tab first — the AI needs a specific resume as context.
-              </p>
-            )}
-          </TabsContent>
-
-          {/* ── RESUMES ── */}
-          <TabsContent value="resumes">
-            <ResumesTab currentData={data} loadedHash={loadedHash} onLoad={handleLoad} />
           </TabsContent>
 
         </Tabs>

@@ -5,13 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm run dev:server",
-    "dev:frontend": "vite --host :: --port 3004",
+    "dev:frontend": "vite --host :: --port 3010",
     "dev:server": "tsx watch server/index.ts",
     "dev:all": "pnpm run dev",
+    "mcp": "tsx server/index.ts",
     "start": "NODE_ENV=production tsx server/index.ts",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "biome": "biome check .",
+    "biome:write": "biome check --write .",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -23,6 +26,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@neondatabase/serverless": "^1.1.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -85,6 +89,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.15",
     "@eslint/js": "^9.32.0",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.6.0",
@@ -95,7 +100,7 @@
     "@types/pg": "^8.20.0",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react-swc": "^3.11.0",
+    "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.10",

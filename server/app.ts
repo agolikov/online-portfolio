@@ -2,12 +2,14 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { and, asc, eq } from "drizzle-orm";
 import crypto from "crypto";
 import { db } from "./db.js";
 import { chatMessages, resumes, techSuggestions } from "./schema.js";
 import { chat, generateCoverLetter } from "./ai.js";
 import { attachCoverLetter, scoreRoleFit } from "./ai.js";
+import { createPortfolioMcpServer } from "./mcp.js";
 import type { Portfolio } from "../src/types/portfolio.js";
 
 const app = express();
@@ -24,6 +26,29 @@ app.use("/api/chat", aiLimit);
 app.use("/api/resumes", (req, _res, next) => {
   if (req.path.endsWith("/cover/generate") && req.method === "POST") return aiLimit(req, _res, next);
   next();
+});
+
+app.all("/mcp", async (req, res) => {
+  const mcpServer = createPortfolioMcpServer();
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true,
+  });
+
+  res.on("close", () => {
+    void transport.close();
+    void mcpServer.close();
+  });
+
+  try {
+    await mcpServer.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } catch (err) {
+    console.error(err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: String(err) });
+    }
+  }
 });
 
 function generateHash(): string {

@@ -18,8 +18,8 @@ export function TechFilter({ tech, experience, selected, onToggle, onClear }: Pr
   }, {});
 
   return (
-    <section className="paper px-4 py-4 md:px-10 md:py-6 animate-fade-in">
-      <div className="mb-4 flex items-end justify-between">
+    <section className="paper rule animate-fade-in px-4 py-6 md:px-6 md:py-8">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="section-title">Tech</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -39,10 +39,10 @@ export function TechFilter({ tech, experience, selected, onToggle, onClear }: Pr
         )}
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3.5">
         {Object.entries(grouped).map(([cat, items]) => (
-          <div key={cat} className="flex flex-wrap items-center gap-2">
-            <span className="w-28 shrink-0 text-xs uppercase tracking-widest text-muted-foreground">
+          <div key={cat} className="grid gap-2 sm:grid-cols-[7.5rem_1fr] sm:items-start">
+            <span className="pt-1 text-xs uppercase tracking-widest text-muted-foreground">
               {cat}
             </span>
             <div className="flex flex-wrap gap-1.5">
