@@ -13,7 +13,8 @@ interface Props {
 
 export function TechFilter({ tech, experience, selected, onToggle, onClear }: Props) {
   const grouped = tech.reduce<Record<string, Tech[]>>((acc, t) => {
-    (acc[t.category] ||= []).push(t);
+    acc[t.category] ??= [];
+    acc[t.category].push(t);
     return acc;
   }, {});
 
@@ -28,6 +29,7 @@ export function TechFilter({ tech, experience, selected, onToggle, onClear }: Pr
         </div>
         {selected.length > 0 && (
           <button
+            type="button"
             onClick={() => {
               posthog.capture("tech_filter_cleared", { cleared_count: selected.length, cleared_tech: selected });
               onClear();
@@ -50,6 +52,7 @@ export function TechFilter({ tech, experience, selected, onToggle, onClear }: Pr
                 const y = yearsForTech(t.name, experience);
                 return (
                   <button
+                    type="button"
                     key={t.name}
                     onClick={() => {
                       posthog.capture("tech_filter_applied", {

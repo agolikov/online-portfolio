@@ -97,8 +97,7 @@ export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected]);
+  }, [searchParams, selected, setSearchParams]);
 
   function toggle(name: string) {
     setSelected((s) => (s.includes(name) ? s.filter((x) => x !== name) : [...s, name]));

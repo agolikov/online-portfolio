@@ -3,7 +3,8 @@ import type { Story } from "@/types/portfolio";
 import { isStoryVisible } from "@/lib/visibility";
 import { Switch } from "@/components/ui/switch";
 import { ChevronDown, ChevronUp, Eye, EyeOff, Plus, Trash2 } from "lucide-react";
-import { labelCls, inputCls, RefineButton, move, uid } from "./EditorShared";
+import { RefineButton } from "./EditorShared";
+import { inputCls, labelCls, move, uid } from "./EditorSharedUtils";
 
 const COMMON_QUESTIONS = [
   "Tell me about a time you led a difficult project.",

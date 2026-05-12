@@ -27,6 +27,9 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "suspicious": {
+        "noUnknownAtRules": "off"
+      },
       "style": {
         "noNonNullAssertion": "off",
         "useNodejsImportProtocol": "off"
@@ -38,6 +41,11 @@
       "quoteStyle": "double",
       "semicolons": "always",
       "trailingCommas": "all"
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
     }
   }
 }

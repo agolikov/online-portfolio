@@ -54,8 +54,8 @@ export function ExperienceList({ experience, selected, onToggle }: Props) {
             </div>
 
             <ul className="mt-3 space-y-1.5 text-sm leading-relaxed">
-              {e.highlights.map((h, i) => (
-                <li key={i} className="flex gap-2">
+              {e.highlights.map((h) => (
+                <li key={`${e.id}-${h}`} className="flex gap-2">
                   <span className="accent-text shrink-0">▸</span>
                   <span>{h}</span>
                 </li>
@@ -65,6 +65,7 @@ export function ExperienceList({ experience, selected, onToggle }: Props) {
             <div className="mt-4 flex flex-wrap gap-1.5">
               {e.tech.map((t) => (
                 <button
+                  type="button"
                   key={t}
                   onClick={() => onToggle?.(t)}
                   className="chip"

@@ -7,7 +7,7 @@ import { CoverLetterPanel } from "@/components/portfolio/CoverLetterPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Eye, EyeOff, Sparkles } from "lucide-react";
-import { inputCls, labelCls } from "./EditorShared";
+import { inputCls, labelCls } from "./EditorSharedUtils";
 
 export function CoverLetterTab({
   data,

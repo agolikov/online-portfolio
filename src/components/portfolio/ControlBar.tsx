@@ -1,5 +1,5 @@
 import posthog from "posthog-js";
-import { useTheme, ACCENTS, type Accent } from "@/context/ThemeContext";
+import { ACCENTS, type Accent, useTheme } from "@/context/theme";
 import { Sun, Moon, FileDown, Palette, Pencil } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -33,7 +33,7 @@ export function ControlBar({ onExport }: Props) {
   return (
     <div className="toolbar-surface sticky top-3 z-30 mx-auto mb-8 flex w-full flex-wrap items-center justify-between gap-3 px-4 py-2.5 print:hidden backdrop-blur supports-[backdrop-filter]:bg-background/75">
       {/* Left: colorful toggle */}
-      <label className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground cursor-pointer">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
         <span className={!isBoring ? "text-foreground font-medium" : ""}>Color</span>
         <Switch
           checked={!isBoring}
@@ -43,7 +43,7 @@ export function ControlBar({ onExport }: Props) {
           }}
           aria-label="Toggle colorful mode"
         />
-      </label>
+      </div>
 
       {/* Right: controls */}
       <div className="flex items-center gap-1.5">
@@ -55,6 +55,7 @@ export function ControlBar({ onExport }: Props) {
               <Tooltip key={a}>
                 <TooltipTrigger asChild>
                   <button
+                    type="button"
                     aria-label={`Accent ${a}`}
                     onClick={() => { posthog.capture("accent_changed", { accent: a }); setAccent(a); }}
                     className="h-5 w-5 rounded-full border transition-transform hover:scale-110"
@@ -74,6 +75,7 @@ export function ControlBar({ onExport }: Props) {
         <Tooltip>
           <TooltipTrigger asChild>
             <button
+              type="button"
               onClick={() => {
                 posthog.capture("color_scheme_toggled", { scheme: isDark ? "light" : "dark" });
                 setScheme(isDark ? "light" : "dark");
@@ -120,6 +122,7 @@ export function ControlBar({ onExport }: Props) {
         <Tooltip>
           <TooltipTrigger asChild>
             <button
+              type="button"
               onClick={() => { posthog.capture("pdf_exported"); onExport(); }}
               className="chip flex items-center gap-1.5"
               data-active="true"

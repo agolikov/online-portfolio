@@ -3,20 +3,7 @@ import { resumesApi } from "@/lib/resumesApi";
 import { toast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Trash2, ChevronDown, ChevronUp, Eye, EyeOff, Sparkles } from "lucide-react";
-
-export const inputCls =
-  "w-full bg-transparent border border-border px-3 py-2 text-sm outline-none focus:border-foreground placeholder:text-muted-foreground";
-export const labelCls = "block text-xs uppercase tracking-widest text-muted-foreground mb-1";
-
-export function uid(prefix: string) {
-  return `${prefix}-${Date.now()}`;
-}
-
-export function move<T>(arr: T[], from: number, to: number): T[] {
-  const next = [...arr];
-  next.splice(to, 0, next.splice(from, 1)[0]);
-  return next;
-}
+import { inputCls, labelCls } from "./EditorSharedUtils";
 
 // ── Refine button ─────────────────────────────────────────────────────────────
 
@@ -31,12 +18,13 @@ export function RefineButton({
 }) {
   const [busy, setBusy] = useState(false);
   if (!hash) return null;
+  const resumeHash = hash;
 
   async function run() {
     if (busy || !value.trim()) return;
     setBusy(true);
     try {
-      await resumesApi.refineTextStream(hash, value, (event) => {
+      await resumesApi.refineTextStream(resumeHash, value, (event) => {
         if (event.type === "done") onDone(event.text);
         else if (event.type === "error")
           toast({ title: "Refine failed", description: event.message, variant: "destructive" });

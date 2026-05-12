@@ -98,7 +98,7 @@ app.get("/api/resumes/:identifier", async (req, res) => {
       .from(resumes)
       .where(or(eq(resumes.hash, id), eq(resumes.alias, id)))
       .limit(1);
-    if (!row || !row.enabled) {
+    if (!row?.enabled) {
       res.status(404).json({ error: "Not found" });
       return;
     }

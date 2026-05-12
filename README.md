@@ -1,6 +1,6 @@
-# Online Portfolio
+# Interactive Resume
 
-A full-stack personal portfolio and resume application. Share your professional experience publicly, create multiple hash-based resume variants for specific roles, generate targeted cover letters with AI, and manage everything from a built-in editor.
+Interactive Resume is a full-stack personal portfolio and resume application. Share your professional experience publicly, create multiple hash-based resume variants for specific roles, generate targeted cover letters with AI, and manage everything from a built-in editor.
 
 ---
 
@@ -64,7 +64,7 @@ A full-stack personal portfolio and resume application. Share your professional 
 
 ```bash
 git clone <repo-url>
-cd online-portfolio
+cd interactive-resume
 pnpm install
 ```
 
@@ -78,7 +78,7 @@ Edit `.env`:
 
 ```env
 # Required — PostgreSQL connection string
-DATABASE_URL=postgres://user:password@localhost:5432/online_portfolio
+DATABASE_URL=postgres://user:password@localhost:5432/interactive_resume
 
 # Optional — enables AI chat and cover-letter generation
 AI_API_KEY=sk-...
@@ -164,7 +164,7 @@ Example MCP client configuration for clients that support Streamable HTTP:
 ```json
 {
   "mcpServers": {
-    "online-portfolio-data": {
+    "interactive-resume-data": {
       "url": "http://localhost:3010/mcp"
     }
   }

@@ -3,7 +3,8 @@ import type { Tech } from "@/types/portfolio";
 import type { TechSuggestion } from "@/lib/resumesApi";
 import { resumesApi } from "@/lib/resumesApi";
 import { X } from "lucide-react";
-import { labelCls, SuggestionPicker } from "./EditorShared";
+import { SuggestionPicker } from "./EditorShared";
+import { labelCls } from "./EditorSharedUtils";
 
 function NewSkillInput({
   onCommit,

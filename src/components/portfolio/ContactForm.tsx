@@ -20,7 +20,9 @@ export function ContactForm({ profile }: { profile: Profile }) {
     const parsed = schema.safeParse(form);
     if (!parsed.success) {
       const errs: Record<string, string> = {};
-      parsed.error.issues.forEach((i) => (errs[i.path[0] as string] = i.message));
+      parsed.error.issues.forEach((i) => {
+        errs[i.path[0] as string] = i.message;
+      });
       setErrors(errs);
       return;
     }
@@ -50,8 +52,9 @@ export function ContactForm({ profile }: { profile: Profile }) {
 
       <form onSubmit={onSubmit} className="grid gap-4 md:grid-cols-2">
         <div>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground">Name</label>
+          <label htmlFor="contact-name" className="text-xs uppercase tracking-widest text-muted-foreground">Name</label>
           <input
+            id="contact-name"
             className={inputCls}
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -60,8 +63,9 @@ export function ContactForm({ profile }: { profile: Profile }) {
           {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name}</p>}
         </div>
         <div>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground">Email</label>
+          <label htmlFor="contact-email" className="text-xs uppercase tracking-widest text-muted-foreground">Email</label>
           <input
+            id="contact-email"
             type="email"
             className={inputCls}
             value={form.email}
@@ -71,8 +75,9 @@ export function ContactForm({ profile }: { profile: Profile }) {
           {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email}</p>}
         </div>
         <div className="md:col-span-2">
-          <label className="text-xs uppercase tracking-widest text-muted-foreground">Message</label>
+          <label htmlFor="contact-message" className="text-xs uppercase tracking-widest text-muted-foreground">Message</label>
           <textarea
+            id="contact-message"
             rows={5}
             className={inputCls}
             value={form.message}

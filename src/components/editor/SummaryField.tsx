@@ -2,7 +2,7 @@ import { useState } from "react";
 import { resumesApi } from "@/lib/resumesApi";
 import { toast } from "@/hooks/use-toast";
 import { RotateCcw, Sparkles } from "lucide-react";
-import { inputCls, labelCls } from "./EditorShared";
+import { inputCls, labelCls } from "./EditorSharedUtils";
 
 const SUMMARY_ACTIONS = [
   { action: "expand", label: "Add more details" },

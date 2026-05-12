@@ -3,6 +3,7 @@ import { Send, Bot, Check, X, Trash2 } from "lucide-react";
 import { resumesApi, type ChatMessage, type SseEvent } from "@/lib/resumesApi";
 
 interface Message extends ChatMessage {
+  clientId: string;
   toolsUsed?: string[];
 }
 
@@ -21,6 +22,13 @@ const SUGGESTIONS = [
   "Write a weakness I could honestly mention in an interview.",
   "Answer: Tell me about a time you led a difficult project.",
 ];
+
+let messageId = 0;
+
+function createMessageId() {
+  messageId += 1;
+  return `${Date.now()}-${messageId}`;
+}
 
 interface Props {
   hash: string;
@@ -42,6 +50,7 @@ export function ChatPane({ hash, messagesHeight = "22rem" }: Props) {
       .then((history) => {
         if (!mounted) return;
         setMessages(history.map((m) => ({
+          clientId: `${m.createdAt}-${m.role}`,
           role: m.role,
           content: m.content,
           toolsUsed: m.toolsUsed,
@@ -52,8 +61,10 @@ export function ChatPane({ hash, messagesHeight = "22rem" }: Props) {
   }, [hash]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+    if (messages.length > 0 || loading) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages.length, loading]);
 
   function action(tool: string, description: string, content: string): Omit<PendingAction, "messages"> {
     return {
@@ -81,8 +92,8 @@ export function ChatPane({ hash, messagesHeight = "22rem" }: Props) {
 
   async function runChat(next: Message[]) {
     setLoading(true);
-    const streamingId = Date.now();
-    setMessages((prev) => [...prev, { role: "assistant", content: "", _id: streamingId } as Message & { _id: number }]);
+    const streamingId = createMessageId();
+    setMessages((prev) => [...prev, { clientId: streamingId, role: "assistant", content: "" }]);
 
     try {
       const apiMessages = next.map(({ role, content }) => ({ role, content }));
@@ -92,7 +103,7 @@ export function ChatPane({ hash, messagesHeight = "22rem" }: Props) {
         if (event.type === "delta") {
           setMessages((prev) =>
             prev.map((m) =>
-              (m as Message & { _id?: number })._id === streamingId
+              m.clientId === streamingId
                 ? { ...m, content: m.content + event.text }
                 : m,
             ),
@@ -101,7 +112,7 @@ export function ChatPane({ hash, messagesHeight = "22rem" }: Props) {
           toolsCollected.push(event.name);
           setMessages((prev) =>
             prev.map((m) =>
-              (m as Message & { _id?: number })._id === streamingId
+              m.clientId === streamingId
                 ? { ...m, toolsUsed: [...toolsCollected] }
                 : m,
             ),
@@ -109,9 +120,8 @@ export function ChatPane({ hash, messagesHeight = "22rem" }: Props) {
         } else if (event.type === "done") {
           setMessages((prev) =>
             prev.map((m) => {
-              if ((m as Message & { _id?: number })._id !== streamingId) return m;
-              const { _id: _, ...clean } = m as Message & { _id?: number };
-              return { ...clean, toolsUsed: event.toolsUsed };
+              if (m.clientId !== streamingId) return m;
+              return { ...m, toolsUsed: event.toolsUsed };
             }),
           );
           if (event.dataChanged || event.coverLetterSaved) {
@@ -120,8 +130,8 @@ export function ChatPane({ hash, messagesHeight = "22rem" }: Props) {
         } else if (event.type === "error") {
           setMessages((prev) =>
             prev.map((m) =>
-              (m as Message & { _id?: number })._id === streamingId
-                ? { role: "assistant", content: "Something went wrong. Please try again." }
+              m.clientId === streamingId
+                ? { clientId: streamingId, role: "assistant", content: "Something went wrong. Please try again." }
                 : m,
             ),
           );
@@ -130,8 +140,8 @@ export function ChatPane({ hash, messagesHeight = "22rem" }: Props) {
     } catch {
       setMessages((prev) =>
         prev.map((m) =>
-          (m as Message & { _id?: number })._id === streamingId
-            ? { role: "assistant", content: "Something went wrong. Please try again." }
+          m.clientId === streamingId
+            ? { clientId: streamingId, role: "assistant", content: "Something went wrong. Please try again." }
             : m,
         ),
       );
@@ -145,7 +155,7 @@ export function ChatPane({ hash, messagesHeight = "22rem" }: Props) {
     if (!content || loading) return;
     setInput("");
 
-    const userMsg: Message = { role: "user", content };
+    const userMsg: Message = { clientId: createMessageId(), role: "user", content };
     const next = [...messages, userMsg];
     setMessages(next);
 
@@ -166,7 +176,10 @@ export function ChatPane({ hash, messagesHeight = "22rem" }: Props) {
 
   function rejectAction() {
     setPendingAction(null);
-    setMessages((prev) => [...prev, { role: "assistant", content: "Rejected. I did not run that action." }]);
+    setMessages((prev) => [
+      ...prev,
+      { clientId: createMessageId(), role: "assistant", content: "Rejected. I did not run that action." },
+    ]);
   }
 
   return (
@@ -212,8 +225,8 @@ export function ChatPane({ hash, messagesHeight = "22rem" }: Props) {
           </div>
         )}
 
-        {messages.map((m, i) => (
-          <div key={i} className={`flex flex-col gap-1 ${m.role === "user" ? "items-end" : "items-start"}`}>
+        {messages.map((m) => (
+          <div key={m.clientId} className={`flex flex-col gap-1 ${m.role === "user" ? "items-end" : "items-start"}`}>
             <div
               className={`rounded-xl px-3 py-2 text-sm leading-relaxed max-w-[88%] whitespace-pre-wrap ${
                 m.role === "user"
