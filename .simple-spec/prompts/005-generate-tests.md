@@ -16,7 +16,7 @@ Your goal is to identify what should be tested, design the test cases, and queue
 Read all code in the target area:
 - The module / feature under test
 - Existing test files (if any) — understand current coverage and patterns
-- `.simple-spec/spec/03-features.md` and `.simple-spec/spec/05-architecture.md` — understand intended behavior
+- `.simple-spec/spec/003-features.md` and `.simple-spec/spec/005-architecture.md` — understand intended behavior
 
 ### Step 2 — Categorize test needs
 
@@ -48,7 +48,7 @@ Setup required: [fixtures, mocks, seeds]
 ### Step 5 — Present and queue
 
 Show the full test plan to the user.
-For each approved suite, create `.simple-spec/queue_tasks/tests-[kebab-description].md`.
+For each approved suite, create `.simple-spec/tasks/tests-[kebab-description].md`.
 
 Each test task should include:
 - The test suite design from Step 4

@@ -3,6 +3,7 @@ import { pgTable, serial, varchar, text, jsonb, boolean, timestamp, integer } fr
 export const resumes = pgTable("resumes", {
   id: serial("id").primaryKey(),
   hash: varchar("hash", { length: 10 }).unique().notNull(),
+  alias: varchar("alias", { length: 100 }).unique(),
   resumeData: jsonb("resume_data").notNull(),
   note: text("note").notNull().default(""),
   coverLetter: text("cover_letter").notNull().default(""),

@@ -3,6 +3,7 @@ import type { CoverLetterMetric, Portfolio } from "@/types/portfolio";
 export interface ResumeRow {
   id: number;
   hash: string;
+  alias: string | null;
   resumeData: Portfolio;
   note: string;
   coverLetter: string;
@@ -35,6 +36,38 @@ export interface CoverLetterResponse {
   recipientName?: string;
   metrics: CoverLetterMetric[];
   vacancyText?: string;
+}
+
+export type SseEvent =
+  | { type: "delta"; text: string }
+  | { type: "tool"; name: string }
+  | { type: "done"; dataChanged: boolean; coverLetterSaved: boolean; toolsUsed: string[] }
+  | { type: "error"; message: string };
+
+export type CoverLetterSseEvent =
+  | { type: "delta"; text: string }
+  | { type: "done"; coverLetter: string; summary: string; recipientName: string; metrics: CoverLetterMetric[]; vacancyText: string }
+  | { type: "error"; message: string };
+
+export type TextSseEvent =
+  | { type: "delta"; text: string }
+  | { type: "done"; text: string }
+  | { type: "error"; message: string };
+
+async function* readSse(res: Response): AsyncGenerator<string> {
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split("\n");
+    buf = lines.pop() ?? "";
+    for (const line of lines) {
+      if (line.startsWith("data: ")) yield line.slice(6);
+    }
+  }
 }
 
 const BASE = "/api";
@@ -95,6 +128,13 @@ export const resumesApi = {
       body: JSON.stringify({ note }),
     }),
 
+  updateAlias: (hash: string, alias: string | null) =>
+    req<ResumeRow>(`/resumes/${hash}/alias`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ alias }),
+    }),
+
   toggle: (hash: string) =>
     req<ResumeRow>(`/resumes/${hash}/toggle`, { method: "PATCH" }),
 
@@ -138,4 +178,82 @@ export const resumesApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ vacancyText, recipientName }),
     }),
+
+  chatStream: async (hash: string, messages: ChatMessage[], onEvent: (e: SseEvent) => void): Promise<void> => {
+    const res = await fetch(`${BASE}/chat/${hash}/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? res.statusText);
+    for await (const line of readSse(res)) {
+      try { onEvent(JSON.parse(line) as SseEvent); } catch { /* ignore */ }
+    }
+  },
+
+  refineTextStream: async (
+    hash: string,
+    text: string,
+    onEvent: (e: TextSseEvent) => void,
+  ): Promise<void> => {
+    const res = await fetch(`${BASE}/resumes/${hash}/text/refine/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? res.statusText);
+    for await (const line of readSse(res)) {
+      try { onEvent(JSON.parse(line) as TextSseEvent); } catch { /* ignore */ }
+    }
+  },
+
+  editCoverLetterStream: async (
+    hash: string,
+    content: string,
+    action: "refine" | "longer" | "shorter",
+    onEvent: (e: TextSseEvent) => void,
+  ): Promise<void> => {
+    const res = await fetch(`${BASE}/resumes/${hash}/cover/edit/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content, action }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? res.statusText);
+    for await (const line of readSse(res)) {
+      try { onEvent(JSON.parse(line) as TextSseEvent); } catch { /* ignore */ }
+    }
+  },
+
+  editSummaryStream: async (
+    hash: string,
+    action: "expand" | "condense" | "rebuild",
+    onEvent: (e: TextSseEvent) => void,
+  ): Promise<void> => {
+    const res = await fetch(`${BASE}/resumes/${hash}/summary/edit/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? res.statusText);
+    for await (const line of readSse(res)) {
+      try { onEvent(JSON.parse(line) as TextSseEvent); } catch { /* ignore */ }
+    }
+  },
+
+  generateCoverLetterStream: async (
+    hash: string,
+    vacancyText: string,
+    recipientName: string,
+    onEvent: (e: CoverLetterSseEvent) => void,
+  ): Promise<void> => {
+    const res = await fetch(`${BASE}/resumes/${hash}/cover/generate/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vacancyText, recipientName }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? res.statusText);
+    for await (const line of readSse(res)) {
+      try { onEvent(JSON.parse(line) as CoverLetterSseEvent); } catch { /* ignore */ }
+    }
+  },
 };

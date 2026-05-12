@@ -31,7 +31,20 @@ export function ExperienceList({ experience, selected, onToggle }: Props) {
             <div className="grid gap-2 md:grid-cols-[1fr_auto] md:items-start">
               <div>
                 <h3 className="text-lg font-semibold leading-snug">
-                  {e.role} <span className="accent-text">@ {e.company}</span>
+                  {e.role}{" "}
+                  <span className="accent-text">
+                    @{" "}
+                    {e.companyUrl ? (
+                      <a
+                        href={e.companyUrl.startsWith("http") ? e.companyUrl : `https://${e.companyUrl}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="hover:underline"
+                      >
+                        {e.company}
+                      </a>
+                    ) : e.company}
+                  </span>
                 </h3>
                 <p className="text-xs uppercase tracking-widest text-muted-foreground">
                   {e.location}

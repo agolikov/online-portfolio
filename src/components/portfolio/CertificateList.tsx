@@ -4,9 +4,10 @@ import { Award, ExternalLink } from "lucide-react";
 interface Props {
   certificates: Certificate[];
   selected: string[];
+  hideYears?: boolean;
 }
 
-export function CertificateList({ certificates, selected }: Props) {
+export function CertificateList({ certificates, selected, hideYears = false }: Props) {
   const filtered =
     selected.length === 0
       ? certificates
@@ -32,7 +33,7 @@ export function CertificateList({ certificates, selected }: Props) {
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-2">
                 <h3 className="font-medium leading-snug">{c.name}</h3>
-                <span className="text-xs tabular-nums text-muted-foreground">{c.year}</span>
+                {!hideYears && <span className="text-xs tabular-nums text-muted-foreground">{c.year}</span>}
               </div>
               <p className="text-sm text-muted-foreground">{c.issuer}</p>
               {c.credentialId && (

@@ -13,6 +13,7 @@ import { ContactForm } from "@/components/portfolio/ContactForm";
 import { StoriesList } from "@/components/portfolio/StoriesList";
 import { CoverLetterPanel } from "@/components/portfolio/CoverLetterPanel";
 import { resumesApi } from "@/lib/resumesApi";
+import { PageSpinner } from "@/components/ui/PageSpinner";
 import { isCoverLetterVisible, isStoryVisible, isVisible } from "@/lib/visibility";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import staticData from "@/data/portfolio.json";
@@ -118,12 +119,11 @@ export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {
     }
   }, [defaultLoaded, visibleCoverLetter?.content]);
 
+  if (!defaultLoaded) return <PageSpinner />;
+
   return (
     <div className="min-h-screen px-4 py-4 md:px-6 md:py-6">
       <main className="mx-auto flex max-w-5xl flex-col gap-6 md:gap-10">
-        {!defaultLoaded && (
-          <div className="paper px-4 py-3 text-sm text-muted-foreground">Loading...</div>
-        )}
         <ControlBar onExport={exportPdf} />
         <Header profile={data.profile} />
         {visibleCoverLetter?.content && (
@@ -163,13 +163,13 @@ export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {
           <ExperienceList experience={visibleExperience} selected={selected} onToggle={toggle} />
         )}
         {visibleProjects.length > 0 && (
-          <ProjectGrid projects={visibleProjects} selected={selected} onToggle={toggle} />
+          <ProjectGrid projects={visibleProjects} selected={selected} onToggle={toggle} hideYears={data.settings?.hideYears} />
         )}
         {visibleCertificates.length > 0 && (
-          <CertificateList certificates={visibleCertificates} selected={selected} />
+          <CertificateList certificates={visibleCertificates} selected={selected} hideYears={data.settings?.hideYears} />
         )}
         {visibleEducation.length > 0 && (
-          <EducationList education={visibleEducation} />
+          <EducationList education={visibleEducation} hideYears={data.settings?.hideYears} />
         )}
         {visibleStories.length > 0 && (
           <StoriesList stories={visibleStories} />

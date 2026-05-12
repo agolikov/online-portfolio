@@ -3,12 +3,12 @@ import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, or } from "drizzle-orm";
 import crypto from "crypto";
 import { db } from "./db.js";
 import { chatMessages, resumes, techSuggestions } from "./schema.js";
-import { chat, generateCoverLetter } from "./ai.js";
-import { attachCoverLetter, scoreRoleFit } from "./ai.js";
+import { chat, generateCoverLetter, chatStream, generateCoverLetterStream, editCoverLetterStream, editSummaryStream, refineTextStream, attachCoverLetter, scoreRoleFit } from "./ai.js";
+import type { CoverLetterEditAction, SummaryEditAction } from "./ai.js";
 import { createPortfolioMcpServer } from "./mcp.js";
 import type { Portfolio } from "../src/types/portfolio.js";
 
@@ -24,7 +24,11 @@ app.use("/api", rateLimit({ windowMs: 60_000, max: 120, standardHeaders: true, l
 const aiLimit = rateLimit({ windowMs: 60_000, max: 10, standardHeaders: true, legacyHeaders: false });
 app.use("/api/chat", aiLimit);
 app.use("/api/resumes", (req, _res, next) => {
-  if (req.path.endsWith("/cover/generate") && req.method === "POST") return aiLimit(req, _res, next);
+  if (req.method === "POST" && (req.path.endsWith("/cover/generate") || req.path.endsWith("/cover/generate/stream"))) return aiLimit(req, _res, next);
+  next();
+});
+app.use("/api/chat", (req, _res, next) => {
+  if (req.method === "POST" && req.path.endsWith("/stream")) return aiLimit(req, _res, next);
   next();
 });
 
@@ -85,13 +89,14 @@ app.get("/api/resumes/default", async (_req, res) => {
   }
 });
 
-// Get single resume by hash — only enabled ones (public route used by /:hash page)
-app.get("/api/resumes/:hash", async (req, res) => {
+// Get single resume by hash or alias — only enabled ones (public route used by /:hash page)
+app.get("/api/resumes/:identifier", async (req, res) => {
   try {
+    const id = req.params.identifier;
     const [row] = await db
       .select()
       .from(resumes)
-      .where(eq(resumes.hash, req.params.hash))
+      .where(or(eq(resumes.hash, id), eq(resumes.alias, id)))
       .limit(1);
     if (!row || !row.enabled) {
       res.status(404).json({ error: "Not found" });
@@ -155,6 +160,36 @@ app.patch("/api/resumes/:hash/note", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: String(err) });
+  }
+});
+
+// Set or clear alias
+app.patch("/api/resumes/:hash/alias", async (req, res) => {
+  try {
+    const { alias } = req.body as { alias: string | null };
+    const normalized = alias?.trim() || null;
+    if (normalized && !/^[a-z0-9-]{1,100}$/.test(normalized)) {
+      res.status(400).json({ error: "Alias must be lowercase alphanumeric and hyphens only (1–100 chars)" });
+      return;
+    }
+    const [row] = await db
+      .update(resumes)
+      .set({ alias: normalized })
+      .where(eq(resumes.hash, req.params.hash))
+      .returning();
+    if (!row) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    res.json(row);
+  } catch (err: unknown) {
+    const msg = String(err);
+    if (msg.includes("unique") || msg.includes("duplicate")) {
+      res.status(409).json({ error: "Alias already in use" });
+      return;
+    }
+    console.error(err);
+    res.status(500).json({ error: msg });
   }
 });
 
@@ -303,6 +338,50 @@ app.delete("/api/chat/:hash/history", async (req, res) => {
   }
 });
 
+// Streaming chat — SSE
+app.post("/api/chat/:hash/stream", async (req, res) => {
+  const { messages } = req.body as { messages: { role: "user" | "assistant"; content: string }[] };
+  const hash = req.params.hash;
+
+  const [row] = await db.select({ id: resumes.id }).from(resumes).where(eq(resumes.hash, hash)).limit(1);
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+
+  const latestUser = [...(messages ?? [])].reverse().find((m) => m.role === "user");
+  if (latestUser) {
+    await db.insert(chatMessages).values({ resumeId: row.id, role: "user", content: latestUser.content });
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  function send(obj: Record<string, unknown>) {
+    res.write(`data: ${JSON.stringify(obj)}\n\n`);
+  }
+
+  try {
+    await chatStream(hash, messages ?? [], {
+      onDelta: (text) => { send({ type: "delta", text }); },
+      onTool: (name) => { send({ type: "tool", name }); },
+      onDone: async (result) => {
+        await db.insert(chatMessages).values({
+          resumeId: row.id,
+          role: "assistant",
+          content: result.content,
+          toolsUsed: result.toolsUsed,
+        });
+        send({ type: "done", dataChanged: result.dataChanged, coverLetterSaved: result.coverLetterSaved, toolsUsed: result.toolsUsed });
+        res.end();
+      },
+      onError: (err) => { send({ type: "error", message: err.message }); res.end(); },
+    });
+  } catch (err) {
+    send({ type: "error", message: String(err) });
+    res.end();
+  }
+});
+
 app.post("/api/chat/:hash", async (req, res) => {
   try {
     const { messages } = req.body as { messages: { role: "user" | "assistant"; content: string }[] };
@@ -395,6 +474,109 @@ app.put("/api/resumes/:hash/cover", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: String(err) });
+  }
+});
+
+// Streaming cover letter generation — SSE
+app.post("/api/resumes/:hash/cover/generate/stream", async (req, res) => {
+  const { vacancyText, recipientName } = req.body as { vacancyText?: string; recipientName?: string };
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  function send(obj: Record<string, unknown>) {
+    res.write(`data: ${JSON.stringify(obj)}\n\n`);
+  }
+
+  try {
+    await generateCoverLetterStream(req.params.hash, vacancyText ?? "", recipientName ?? "", {
+      onDelta: (text) => send({ type: "delta", text }),
+      onDone: (result) => {
+        send({ type: "done", ...result, vacancyText: vacancyText ?? "" });
+        res.end();
+      },
+      onError: (err) => { send({ type: "error", message: err.message }); res.end(); },
+    });
+  } catch (err) {
+    send({ type: "error", message: String(err) });
+    res.end();
+  }
+});
+
+// Edit cover letter (refine / longer / shorter) — SSE
+app.post("/api/resumes/:hash/cover/edit/stream", async (req, res) => {
+  const { content, action } = req.body as { content: string; action: CoverLetterEditAction };
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  function send(obj: Record<string, unknown>) {
+    res.write(`data: ${JSON.stringify(obj)}\n\n`);
+  }
+
+  try {
+    await editCoverLetterStream(content ?? "", action ?? "refine", {
+      onDelta: (text) => send({ type: "delta", text }),
+      onDone: (text) => { send({ type: "done", text }); res.end(); },
+      onError: (err) => { send({ type: "error", message: err.message }); res.end(); },
+    });
+  } catch (err) {
+    send({ type: "error", message: String(err) });
+    res.end();
+  }
+});
+
+// Edit profile summary (expand / condense / rebuild) — SSE
+app.post("/api/resumes/:hash/summary/edit/stream", async (req, res) => {
+  const { action } = req.body as { action: SummaryEditAction };
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  function send(obj: Record<string, unknown>) {
+    res.write(`data: ${JSON.stringify(obj)}\n\n`);
+  }
+
+  try {
+    await editSummaryStream(req.params.hash, action ?? "rebuild", {
+      onDelta: (text) => send({ type: "delta", text }),
+      onDone: (text) => { send({ type: "done", text }); res.end(); },
+      onError: (err) => { send({ type: "error", message: err.message }); res.end(); },
+    });
+  } catch (err) {
+    send({ type: "error", message: String(err) });
+    res.end();
+  }
+});
+
+// Refine arbitrary text — SSE
+app.post("/api/resumes/:hash/text/refine/stream", async (req, res) => {
+  const { text } = req.body as { text: string };
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  function send(obj: Record<string, unknown>) {
+    res.write(`data: ${JSON.stringify(obj)}\n\n`);
+  }
+
+  try {
+    await refineTextStream(text ?? "", {
+      onDelta: (t) => send({ type: "delta", text: t }),
+      onDone: (t) => { send({ type: "done", text: t }); res.end(); },
+      onError: (err) => { send({ type: "error", message: err.message }); res.end(); },
+    });
+  } catch (err) {
+    send({ type: "error", message: String(err) });
+    res.end();
   }
 });
 

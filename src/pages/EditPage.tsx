@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, Save, RotateCcw, Download, Upload, Plus, Trash2,
-  ChevronDown, ChevronUp, Copy, RefreshCw, X, Eye, EyeOff, Sparkles, ExternalLink,
+  ChevronDown, ChevronUp, RefreshCw, X, Eye, EyeOff, Sparkles, ExternalLink,
 } from "lucide-react";
 
 const inputCls =
@@ -28,22 +28,55 @@ function uid(prefix: string) {
 
 // ── Shared field components ──────────────────────────────────────────────────
 
+function RefineButton({ hash, value, onDone }: { hash?: string | null; value: string; onDone: (text: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  if (!hash) return null;
+
+  async function run() {
+    if (busy || !value.trim()) return;
+    setBusy(true);
+    try {
+      await resumesApi.refineTextStream(hash, value, (event) => {
+        if (event.type === "done") onDone(event.text);
+        else if (event.type === "error") toast({ title: "Refine failed", description: event.message, variant: "destructive" });
+      });
+    } catch {
+      toast({ title: "Refine failed", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={run}
+      disabled={busy || !value.trim()}
+      className="chip text-xs flex items-center gap-1 disabled:opacity-40"
+    >
+      <Sparkles size={10} /> {busy ? "Refining…" : "Refine"}
+    </button>
+  );
+}
+
 function Field({
-  label, value, onChange, multiline = false, rows = 3, span2 = false,
+  label, value, onChange, multiline = false, rows = 3, span2 = false, hash,
 }: {
   label: string; value: string; onChange: (v: string) => void;
-  multiline?: boolean; rows?: number; span2?: boolean;
+  multiline?: boolean; rows?: number; span2?: boolean; hash?: string | null;
 }) {
   return (
     <div className={span2 ? "md:col-span-2" : ""}>
-      <label className={labelCls}>{label}</label>
       {multiline ? (
-        <textarea
-          rows={rows}
-          className={inputCls}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
+        <div className="flex items-center justify-between mb-1">
+          <span className="block text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
+          <RefineButton hash={hash} value={value} onDone={onChange} />
+        </div>
+      ) : (
+        <label className={labelCls}>{label}</label>
+      )}
+      {multiline ? (
+        <textarea rows={rows} className={inputCls} value={value} onChange={(e) => onChange(e.target.value)} />
       ) : (
         <input className={inputCls} value={value} onChange={(e) => onChange(e.target.value)} />
       )}
@@ -93,34 +126,51 @@ function TagEditor({
   );
 }
 
+function HighlightRow({
+  value, hash, onChange, onRemove,
+}: {
+  value: string; hash?: string | null;
+  onChange: (v: string) => void; onRemove: () => void;
+}) {
+  return (
+    <div className="flex gap-2">
+      <textarea
+        rows={2}
+        className={`${inputCls} flex-1 resize-none`}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <div className="flex flex-col gap-0.5 shrink-0 self-start pt-0.5">
+        <RefineButton hash={hash} value={value} onDone={onChange} />
+        <button type="button" onClick={onRemove} className="p-1.5 text-muted-foreground hover:text-destructive">
+          <Trash2 size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function HighlightEditor({
-  highlights, onChange, onAdd, onRemove,
+  highlights, onChange, onAdd, onRemove, hash,
 }: {
   highlights: string[];
   onChange: (i: number, v: string) => void;
   onAdd: () => void;
   onRemove: (i: number) => void;
+  hash?: string | null;
 }) {
   return (
     <div className="md:col-span-2">
       <label className={labelCls}>Highlights</label>
       <div className="space-y-2">
         {highlights.map((h, i) => (
-          <div key={i} className="flex gap-2">
-            <textarea
-              rows={2}
-              className={inputCls + " flex-1 resize-none"}
-              value={h}
-              onChange={(e) => onChange(i, e.target.value)}
-            />
-            <button
-              type="button"
-              onClick={() => onRemove(i)}
-              className="self-start p-1.5 text-muted-foreground hover:text-destructive"
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
+          <HighlightRow
+            key={i}
+            value={h}
+            hash={hash}
+            onChange={(v) => onChange(i, v)}
+            onRemove={() => onRemove(i)}
+          />
         ))}
       </div>
       <button type="button" onClick={onAdd} className="mt-2 chip flex items-center gap-1">
@@ -130,13 +180,21 @@ function HighlightEditor({
   );
 }
 
+function move<T>(arr: T[], from: number, to: number): T[] {
+  const next = [...arr];
+  next.splice(to, 0, next.splice(from, 1)[0]);
+  return next;
+}
+
 function CardHeader({
-  title, subtitle, expanded, enabled = true, onToggle, onDelete, onEnabledChange,
+  title, subtitle, expanded, enabled = true, onToggle, onDelete, onEnabledChange, onMoveUp, onMoveDown,
 }: {
   title: string; subtitle?: string; expanded: boolean;
   enabled?: boolean;
   onToggle: () => void; onDelete: () => void;
   onEnabledChange?: (enabled: boolean) => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }) {
   return (
     <div className="flex items-center justify-between gap-2 px-4 py-3 bg-muted/30">
@@ -161,13 +219,33 @@ function CardHeader({
           />
         </label>
       )}
-      <button
-        type="button"
-        onClick={onDelete}
-        className="p-1 text-muted-foreground hover:text-destructive shrink-0"
-      >
-        <Trash2 size={14} />
-      </button>
+      <div className="flex items-center shrink-0">
+        <button
+          type="button"
+          onClick={onMoveUp}
+          disabled={!onMoveUp}
+          className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-20"
+          aria-label="Move up"
+        >
+          <ChevronUp size={14} />
+        </button>
+        <button
+          type="button"
+          onClick={onMoveDown}
+          disabled={!onMoveDown}
+          className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-20"
+          aria-label="Move down"
+        >
+          <ChevronDown size={14} />
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="p-1 text-muted-foreground hover:text-destructive"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -398,9 +476,11 @@ const COMMON_QUESTIONS = [
 function StoriesTab({
   stories,
   onChange,
+  hash,
 }: {
   stories: Story[];
   onChange: (s: Story[]) => void;
+  hash?: string | null;
 }) {
   const [customQ, setCustomQ] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -484,7 +564,7 @@ function StoriesTab({
         <p className="text-sm text-muted-foreground">No stories yet — add a question above.</p>
       )}
       <div className="space-y-2">
-        {stories.map((story) => {
+        {stories.map((story, i) => {
           const isOpen = expanded.has(story.id);
           return (
             <div key={story.id} className="border border-border rounded-md overflow-hidden">
@@ -505,20 +585,43 @@ function StoriesTab({
                     aria-label="Toggle visibility for story"
                   />
                 </label>
-                <button
-                  type="button"
-                  onClick={() => removeStory(story.id)}
-                  className="p-1 text-muted-foreground hover:text-destructive shrink-0"
-                  aria-label="Remove story"
-                >
-                  <Trash2 size={14} />
-                </button>
+                <div className="flex items-center shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onChange(move(stories, i, i - 1))}
+                    disabled={i === 0}
+                    className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-20"
+                    aria-label="Move up"
+                  >
+                    <ChevronUp size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onChange(move(stories, i, i + 1))}
+                    disabled={i === stories.length - 1}
+                    className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-20"
+                    aria-label="Move down"
+                  >
+                    <ChevronDown size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeStory(story.id)}
+                    className="p-1 text-muted-foreground hover:text-destructive"
+                    aria-label="Remove story"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
               {isOpen && (
-                <div className="px-4 py-3">
+                <div className="px-4 py-3 space-y-1.5">
+                  <div className="flex justify-end">
+                    <RefineButton hash={hash} value={story.answer} onDone={(text) => updateAnswer(story.id, text)} />
+                  </div>
                   <textarea
                     rows={5}
-                    className={inputCls + " resize-none"}
+                    className={`${inputCls} resize-none`}
                     placeholder="Your answer using the STAR method (Situation → Task → Action → Result)…"
                     value={story.answer}
                     onChange={(e) => updateAnswer(story.id, e.target.value)}
@@ -548,6 +651,8 @@ function CoverLetterTab({
   const [recipientName, setRecipientName] = useState(data.coverLetters?.current?.recipientName ?? "");
   const [manualLetter, setManualLetter] = useState(data.coverLetters?.current?.content ?? "");
   const [generating, setGenerating] = useState(false);
+  const [editingAction, setEditingAction] = useState<string | null>(null);
+  const [streamingLetter, setStreamingLetter] = useState<string | null>(null);
   const savedLetterRef = useRef(data.coverLetters?.current?.content ?? "");
   const currentCoverLetter = data.coverLetters?.current;
   const coverVisible = isCoverLetterVisible(currentCoverLetter);
@@ -563,30 +668,67 @@ function CoverLetterTab({
   async function generate() {
     if (!loadedHash || !jobDescription.trim()) return;
     setGenerating(true);
+    setStreamingLetter("");
     try {
-      const result = await resumesApi.generateCoverLetter(loadedHash, jobDescription, recipientName);
-      onChange({
-        ...data,
-        coverLetters: {
-          ...data.coverLetters,
-          current: {
-            content: result.coverLetter,
-            enabled: currentCoverLetter?.enabled ?? true,
-            summary: result.summary,
-            recipientName: result.recipientName ?? recipientName,
-            vacancyText: result.vacancyText ?? jobDescription,
-            metrics: result.metrics,
-            generatedAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        },
+      await resumesApi.generateCoverLetterStream(loadedHash, jobDescription, recipientName, (event) => {
+        if (event.type === "delta") {
+          setStreamingLetter((prev) => (prev ?? "") + event.text);
+        } else if (event.type === "done") {
+          setStreamingLetter(null);
+          setManualLetter(event.coverLetter);
+          savedLetterRef.current = event.coverLetter;
+          onChange({
+            ...data,
+            coverLetters: {
+              ...data.coverLetters,
+              current: {
+                content: event.coverLetter,
+                enabled: currentCoverLetter?.enabled ?? true,
+                summary: event.summary,
+                recipientName: event.recipientName ?? recipientName,
+                vacancyText: event.vacancyText ?? jobDescription,
+                metrics: event.metrics,
+                generatedAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              },
+            },
+          });
+          window.dispatchEvent(new CustomEvent("resume-data-changed", { detail: { hash: loadedHash } }));
+          toast({ title: "Cover letter generated", description: "Saved to the loaded resume." });
+        } else if (event.type === "error") {
+          setStreamingLetter(null);
+          toast({ title: "Failed to generate cover letter", description: event.message, variant: "destructive" });
+        }
       });
-      window.dispatchEvent(new CustomEvent("resume-data-changed", { detail: { hash: loadedHash } }));
-      toast({ title: "Cover letter generated", description: "Saved to the loaded resume." });
     } catch {
+      setStreamingLetter(null);
       toast({ title: "Failed to generate cover letter", variant: "destructive" });
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function editCoverLetter(action: "refine" | "longer" | "shorter") {
+    if (!loadedHash || !manualLetter.trim() || generating || editingAction) return;
+    setEditingAction(action);
+    setStreamingLetter("");
+    try {
+      await resumesApi.editCoverLetterStream(loadedHash, manualLetter, action, (event) => {
+        if (event.type === "delta") {
+          setStreamingLetter((prev) => (prev ?? "") + event.text);
+        } else if (event.type === "done") {
+          setStreamingLetter(null);
+          setManualLetter(event.text);
+        } else if (event.type === "error") {
+          setStreamingLetter(null);
+          toast({ title: "Failed to edit cover letter", description: event.message, variant: "destructive" });
+        }
+      });
+    } catch {
+      setStreamingLetter(null);
+      toast({ title: "Failed to edit cover letter", variant: "destructive" });
+    } finally {
+      setEditingAction(null);
     }
   }
 
@@ -677,29 +819,62 @@ function CoverLetterTab({
           placeholder="Optional, e.g. Anna Kowalska"
         />
       </div>
-      <button
-        type="button"
-        onClick={generate}
-        disabled={generating || !jobDescription.trim()}
-        className="chip flex items-center gap-1.5 disabled:opacity-40"
-        data-active="true"
-      >
-        <Sparkles size={12} /> {generating ? "Generating..." : "Generate"}
-      </button>
-      <div>
-        <label className={labelCls}>Manual Cover Letter</label>
-        <textarea
-          rows={10}
-          className={inputCls + " resize-y"}
-          value={manualLetter}
-          onChange={(e) => setManualLetter(e.target.value)}
-          onBlur={saveManual}
-          placeholder="Write or paste a cover letter manually..."
-        />
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={generate}
+          disabled={!!generating || !!editingAction || !jobDescription.trim()}
+          className="chip flex items-center gap-1.5 disabled:opacity-40"
+          data-active="true"
+        >
+          <Sparkles size={12} /> {generating ? "Generating..." : "Generate"}
+        </button>
+        {([
+          ["refine", "Refine"],
+          ["longer", "Make Longer"],
+          ["shorter", "Make Shorter"],
+        ] as const).map(([action, label]) => (
+          <button
+            key={action}
+            type="button"
+            onClick={() => editCoverLetter(action)}
+            disabled={!!generating || !!editingAction || !manualLetter.trim()}
+            className="chip flex items-center gap-1.5 disabled:opacity-40"
+          >
+            {editingAction === action ? `${label}…` : label}
+          </button>
+        ))}
       </div>
-      {data.coverLetters?.current?.content && (
-        <CoverLetterPanel coverLetter={data.coverLetters.current} />
-      )}
+      <Tabs defaultValue="edit">
+        <TabsList className="flex h-auto gap-1 bg-muted/50 p-1 w-fit">
+          <TabsTrigger value="edit" className="text-xs uppercase tracking-widest">Edit</TabsTrigger>
+          <TabsTrigger value="preview" className="text-xs uppercase tracking-widest">Preview</TabsTrigger>
+        </TabsList>
+        <TabsContent value="edit" className="mt-2">
+          {streamingLetter !== null ? (
+            <div className={`${inputCls} resize-none min-h-[14rem] whitespace-pre-wrap text-muted-foreground`}>
+              {streamingLetter}
+              <span className="animate-pulse">▍</span>
+            </div>
+          ) : (
+            <textarea
+              rows={10}
+              className={`${inputCls} resize-y`}
+              value={manualLetter}
+              onChange={(e) => setManualLetter(e.target.value)}
+              onBlur={saveManual}
+              placeholder="Write or paste a cover letter manually..."
+              disabled={generating}
+            />
+          )}
+        </TabsContent>
+        <TabsContent value="preview" className="mt-2">
+          {data.coverLetters?.current?.content
+            ? <CoverLetterPanel coverLetter={data.coverLetters.current} />
+            : <p className="text-sm text-muted-foreground">No cover letter saved yet.</p>
+          }
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -735,6 +910,51 @@ function NoteInput({ hash, initial }: { hash: string; initial: string }) {
       onChange={(e) => setValue(e.target.value)}
       onBlur={handleBlur}
     />
+  );
+}
+
+// ── Inline alias editor ──────────────────────────────────────────────────────
+
+function AliasInput({ hash, initial, onSaved }: { hash: string; initial: string | null; onSaved: (alias: string | null) => void }) {
+  const [value, setValue] = useState(initial ?? "");
+  const savedRef = useRef(initial ?? "");
+
+  useEffect(() => {
+    setValue(initial ?? "");
+    savedRef.current = initial ?? "";
+  }, [initial]);
+
+  async function handleBlur() {
+    const next = value.trim();
+    if (next === savedRef.current) return;
+    try {
+      const row = await resumesApi.updateAlias(hash, next || null);
+      savedRef.current = next;
+      onSaved(row.alias);
+    } catch (e) {
+      const msg = String(e);
+      if (msg.includes("409") || msg.toLowerCase().includes("already in use")) {
+        toast({ title: "Alias already in use", description: "Choose a different alias.", variant: "destructive" });
+      } else if (msg.includes("400")) {
+        toast({ title: "Invalid alias", description: "Lowercase letters, numbers, and hyphens only.", variant: "destructive" });
+      } else {
+        toast({ title: "Failed to save alias", variant: "destructive" });
+      }
+      setValue(savedRef.current);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-muted-foreground/60 shrink-0">/</span>
+      <input
+        className="flex-1 text-xs text-muted-foreground bg-transparent border border-transparent hover:border-border focus:border-foreground outline-none placeholder:text-muted-foreground/40 transition-colors rounded px-1.5 py-0.5 font-mono"
+        placeholder="alias (optional)"
+        value={value}
+        onChange={(e) => setValue(e.target.value.toLowerCase())}
+        onBlur={handleBlur}
+      />
+    </div>
   );
 }
 
@@ -793,16 +1013,6 @@ function ResumesTab({
     reader.readAsText(file);
   }
 
-  async function updateRow(hash: string) {
-    try {
-      await resumesApi.update(hash, currentData);
-      await refresh();
-      toast({ title: "Updated", description: `Resume ${hash} overwritten with current editor data.` });
-    } catch (e) {
-      toast({ title: "Update failed", description: String(e), variant: "destructive" });
-    }
-  }
-
   async function toggleRow(hash: string) {
     try {
       await resumesApi.toggle(hash);
@@ -822,29 +1032,11 @@ function ResumesTab({
     }
   }
 
-  async function clearDefaultRow() {
-    try {
-      await resumesApi.clearDefault();
-      await refresh();
-      toast({ title: "Default resume cleared", description: "Home page will use portfolio.json sample data." });
-    } catch (e) {
-      toast({ title: "Clear default failed", description: String(e), variant: "destructive" });
-    }
-  }
+
 
   function loadRow(row: ResumeRow) {
     onLoad(row.resumeData, row.hash);
     toast({ title: "Loaded", description: `Resume ${row.hash} loaded into editor.` });
-  }
-
-  function exportRow(row: ResumeRow) {
-    const blob = new Blob([JSON.stringify(row.resumeData, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `resume_${row.hash}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   async function deleteRow(hash: string) {
@@ -858,9 +1050,8 @@ function ResumesTab({
     }
   }
 
-  function copyLink(hash: string) {
-    navigator.clipboard.writeText(`${window.location.origin}/${hash}`);
-    toast({ title: "Link copied" });
+  function handleAliasSaved(hash: string, alias: string | null) {
+    setRows((prev) => prev.map((r) => (r.hash === hash ? { ...r, alias } : r)));
   }
 
   return (
@@ -895,9 +1086,12 @@ function ResumesTab({
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{row.hash}</span>
+                    {row.alias && (
+                      <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded text-primary">/{row.alias}</span>
+                    )}
                     {isLoaded && (
                       <span className="text-xs px-1.5 py-0.5 rounded bg-primary text-primary-foreground font-medium">
-                        editing
+                        active
                       </span>
                     )}
                     {row.isDefault && (
@@ -909,6 +1103,7 @@ function ResumesTab({
                   <p className="text-sm font-medium">{(row.resumeData as Portfolio).profile?.name ?? "—"}</p>
                   <p className="text-xs text-muted-foreground">{new Date(row.createdAt).toLocaleString()}</p>
                   <NoteInput hash={row.hash} initial={row.note ?? ""} />
+                  <AliasInput hash={row.hash} initial={row.alias} onSaved={(alias) => handleAliasSaved(row.hash, alias)} />
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -921,10 +1116,7 @@ function ResumesTab({
                     />
                   </div>
                   <button onClick={() => loadRow(row)} className="chip flex items-center gap-1" title="Load into editor">
-                    <Download size={11} /> Load
-                  </button>
-                  <button onClick={() => copyLink(row.hash)} className="chip flex items-center gap-1" title="Copy share link">
-                    <Copy size={11} /> Link
+                    <Download size={11} /> Active
                   </button>
                   <a
                     href={`/${row.hash}`}
@@ -935,11 +1127,7 @@ function ResumesTab({
                   >
                     <ExternalLink size={11} /> Open
                   </a>
-                  {row.isDefault ? (
-                    <button onClick={clearDefaultRow} className="chip flex items-center gap-1" data-active="true" title="Currently set as default — click to clear">
-                      <X size={11} /> Default
-                    </button>
-                  ) : (
+                  {!row.isDefault && (
                     <button
                       onClick={() => setDefaultRow(row.hash)}
                       disabled={!row.enabled}
@@ -949,14 +1137,6 @@ function ResumesTab({
                       <Save size={11} /> Default
                     </button>
                   )}
-                  {!isLoaded && (
-                    <button onClick={() => updateRow(row.hash)} className="chip flex items-center gap-1" title="Overwrite with current editor data">
-                      <Save size={11} /> Update
-                    </button>
-                  )}
-                  <button onClick={() => exportRow(row)} className="chip flex items-center gap-1" title="Export JSON">
-                    <Upload size={11} /> Export
-                  </button>
                   <button
                     onClick={() => deleteRow(row.hash)}
                     className="chip flex items-center gap-1 text-destructive border-destructive/30"
@@ -969,6 +1149,96 @@ function ResumesTab({
             );
           })}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── Summary field with AI actions ────────────────────────────────────────────
+
+const SUMMARY_ACTIONS = [
+  { action: "expand",   label: "Add more details" },
+  { action: "condense", label: "Add less details" },
+  { action: "rebuild",  label: "Rebuild" },
+] as const;
+
+function SummaryField({
+  value,
+  loadedHash,
+  onChange,
+}: {
+  value: string;
+  loadedHash: string | null;
+  onChange: (v: string) => void;
+}) {
+  const [streaming, setStreaming] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [prev, setPrev] = useState<string | null>(null);
+
+  async function run(action: "expand" | "condense" | "rebuild") {
+    if (!loadedHash || busy) return;
+    setPrev(value);
+    setBusy(true);
+    setStreaming("");
+    try {
+      await resumesApi.editSummaryStream(loadedHash, action, (event) => {
+        if (event.type === "delta") setStreaming((p) => (p ?? "") + event.text);
+        else if (event.type === "done") { onChange(event.text); setStreaming(null); }
+        else if (event.type === "error") {
+          setStreaming(null);
+          toast({ title: "Failed to edit summary", description: event.message, variant: "destructive" });
+        }
+      });
+    } catch {
+      setStreaming(null);
+      toast({ title: "Failed to edit summary", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function revert() {
+    if (prev === null) return;
+    onChange(prev);
+    setPrev(null);
+  }
+
+  return (
+    <div className="md:col-span-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+        <label className={labelCls}>Summary</label>
+        {loadedHash && (
+          <div className="flex flex-wrap gap-1">
+            {SUMMARY_ACTIONS.map(({ action, label }) => (
+              <button
+                key={action}
+                type="button"
+                onClick={() => run(action)}
+                disabled={busy}
+                className="chip text-xs flex items-center gap-1 disabled:opacity-40"
+              >
+                <Sparkles size={10} /> {busy ? `${label}…` : label}
+              </button>
+            ))}
+            {prev !== null && (
+              <button
+                type="button"
+                onClick={revert}
+                disabled={busy}
+                className="chip text-xs flex items-center gap-1"
+              >
+                <RotateCcw size={10} /> Revert
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+      {streaming !== null ? (
+        <div className={`${inputCls} min-h-[6rem] whitespace-pre-wrap text-muted-foreground`}>
+          {streaming}<span className="animate-pulse">▍</span>
+        </div>
+      ) : (
+        <textarea rows={5} className={inputCls} value={value} onChange={(e) => onChange(e.target.value)} />
       )}
     </div>
   );
@@ -1175,7 +1445,7 @@ function EditBody() {
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
           <div className="flex items-center gap-3 flex-wrap">
             <Link to="/" className="chip flex items-center gap-1.5"><ArrowLeft size={12} /> Back</Link>
-            <h1 className="text-xl font-semibold">Edit Portfolio</h1>
+            <h1 className="text-xl font-semibold">Edit Resume</h1>
             <span className="chip" data-active="true">DEV ONLY</span>
             {loadedHash && (
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -1255,7 +1525,19 @@ function EditBody() {
           </TabsContent>
 
           {/* ── PROFILE ── */}
-          <TabsContent value="profile" className="mt-6 grid gap-4 md:grid-cols-2">
+          <TabsContent value="profile" className="mt-6 space-y-4">
+            <div className="flex items-center justify-between rounded-md border border-border px-4 py-3 bg-muted/30">
+              <div>
+                <p className="text-sm font-medium">Hide years</p>
+                <p className="text-xs text-muted-foreground">Suppress years on projects, certificates, and education in public view and PDF.</p>
+              </div>
+              <Switch
+                checked={data.settings?.hideYears ?? false}
+                onCheckedChange={(v) => setData((d) => ({ ...d, settings: { ...d.settings, hideYears: v } }))}
+                aria-label="Hide years"
+              />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
             <Field label="Name" value={data.profile.name} onChange={(v) => sp({ name: v })} />
             <Field label="Title" value={data.profile.title} onChange={(v) => sp({ title: v })} />
             <Field label="Location" value={data.profile.location} onChange={(v) => sp({ location: v })} />
@@ -1263,7 +1545,8 @@ function EditBody() {
             <Field label="Website" value={data.profile.website} onChange={(v) => sp({ website: v })} />
             <Field label="GitHub" value={data.profile.github} onChange={(v) => sp({ github: v })} />
             <Field label="LinkedIn" value={data.profile.linkedin} onChange={(v) => sp({ linkedin: v })} />
-            <Field label="Summary" value={data.profile.summary} onChange={(v) => sp({ summary: v })} multiline rows={5} span2 />
+            <SummaryField value={data.profile.summary} loadedHash={loadedHash} onChange={(v) => sp({ summary: v })} />
+            </div>
           </TabsContent>
 
           {/* ── TECH ── */}
@@ -1279,7 +1562,7 @@ function EditBody() {
               </button>
             </div>
             <div className="space-y-2">
-              {data.experience.map((e) => {
+              {data.experience.map((e, i) => {
                 const open = isOpen("exp", e.id);
                 const tk = `exp-${e.id}`;
                 return (
@@ -1292,10 +1575,13 @@ function EditBody() {
 	                      onToggle={() => toggleExpanded("exp", e.id)}
 	                      onDelete={() => removeExp(e.id)}
 	                      onEnabledChange={(enabled) => ue(e.id, { enabled })}
+	                      onMoveUp={i > 0 ? () => setData((d) => ({ ...d, experience: move(d.experience, i, i - 1) })) : undefined}
+	                      onMoveDown={i < data.experience.length - 1 ? () => setData((d) => ({ ...d, experience: move(d.experience, i, i + 1) })) : undefined}
 	                    />
                     {open && (
                       <div className="px-4 py-4 grid gap-4 md:grid-cols-2">
                         <Field label="Company" value={e.company} onChange={(v) => ue(e.id, { company: v })} />
+                        <Field label="Company URL" value={e.companyUrl ?? ""} onChange={(v) => ue(e.id, { companyUrl: v || undefined })} />
                         <Field label="Role" value={e.role} onChange={(v) => ue(e.id, { role: v })} />
                         <Field label="Period" value={e.period} onChange={(v) => ue(e.id, { period: v })} />
                         <Field label="Location" value={e.location} onChange={(v) => ue(e.id, { location: v })} />
@@ -1306,6 +1592,7 @@ function EditBody() {
                           onChange={(i, v) => ue(e.id, { highlights: e.highlights.map((h, idx) => idx === i ? v : h) })}
                           onAdd={() => ue(e.id, { highlights: [...e.highlights, ""] })}
                           onRemove={(i) => ue(e.id, { highlights: e.highlights.filter((_, idx) => idx !== i) })}
+                          hash={loadedHash}
                         />
                         <TagEditor
                           tags={e.tech}
@@ -1330,7 +1617,7 @@ function EditBody() {
               </button>
             </div>
             <div className="space-y-2">
-              {data.projects.map((p) => {
+              {data.projects.map((p, i) => {
                 const open = isOpen("proj", p.id);
                 const tk = `proj-${p.id}`;
                 return (
@@ -1343,13 +1630,16 @@ function EditBody() {
 	                      onToggle={() => toggleExpanded("proj", p.id)}
 	                      onDelete={() => removeProj(p.id)}
 	                      onEnabledChange={(enabled) => up(p.id, { enabled })}
+	                      onMoveUp={i > 0 ? () => setData((d) => ({ ...d, projects: move(d.projects, i, i - 1) })) : undefined}
+	                      onMoveDown={i < data.projects.length - 1 ? () => setData((d) => ({ ...d, projects: move(d.projects, i, i + 1) })) : undefined}
 	                    />
                     {open && (
                       <div className="px-4 py-4 grid gap-4 md:grid-cols-2">
                         <Field label="Name" value={p.name} onChange={(v) => up(p.id, { name: v })} />
+                        <Field label="Year" value={p.year ?? ""} onChange={(v) => up(p.id, { year: v || undefined })} />
                         <Field label="Link" value={p.link} onChange={(v) => up(p.id, { link: v })} />
                         <Field label="Tagline" value={p.tagline} onChange={(v) => up(p.id, { tagline: v })} span2 />
-                        <Field label="Description" value={p.description} onChange={(v) => up(p.id, { description: v })} multiline rows={3} span2 />
+                        <Field label="Description" value={p.description} onChange={(v) => up(p.id, { description: v })} multiline rows={3} span2 hash={loadedHash} />
                         <TagEditor
                           tags={p.tech}
                           inputValue={tagVal(tk)}
@@ -1373,7 +1663,7 @@ function EditBody() {
               </button>
             </div>
             <div className="space-y-2">
-              {data.certificates.map((c) => {
+              {data.certificates.map((c, i) => {
                 const open = isOpen("cert", c.id);
                 const tk = `cert-${c.id}`;
                 return (
@@ -1386,6 +1676,8 @@ function EditBody() {
 	                      onToggle={() => toggleExpanded("cert", c.id)}
 	                      onDelete={() => removeCert(c.id)}
 	                      onEnabledChange={(enabled) => uc(c.id, { enabled })}
+	                      onMoveUp={i > 0 ? () => setData((d) => ({ ...d, certificates: move(d.certificates, i, i - 1) })) : undefined}
+	                      onMoveDown={i < data.certificates.length - 1 ? () => setData((d) => ({ ...d, certificates: move(d.certificates, i, i + 1) })) : undefined}
 	                    />
                     {open && (
                       <div className="px-4 py-4 grid gap-4 md:grid-cols-2">
@@ -1417,7 +1709,7 @@ function EditBody() {
               </button>
             </div>
             <div className="space-y-2">
-              {edu.map((e) => {
+              {edu.map((e, i) => {
                 const open = isOpen("edu", e.id);
                 return (
 	                  <div key={e.id} className="border border-border rounded-md overflow-hidden">
@@ -1429,6 +1721,8 @@ function EditBody() {
 	                      onToggle={() => toggleExpanded("edu", e.id)}
 	                      onDelete={() => removeEdu(e.id)}
 	                      onEnabledChange={(enabled) => uEdu(e.id, { enabled })}
+	                      onMoveUp={i > 0 ? () => setData((d) => ({ ...d, education: move(d.education ?? [], i, i - 1) })) : undefined}
+	                      onMoveDown={i < edu.length - 1 ? () => setData((d) => ({ ...d, education: move(d.education ?? [], i, i + 1) })) : undefined}
 	                    />
                     {open && (
                       <div className="px-4 py-4 grid gap-4 md:grid-cols-2">
@@ -1436,10 +1730,17 @@ function EditBody() {
                         <Field label="Short Name" value={e.shortName ?? ""} onChange={(v) => uEdu(e.id, { shortName: v || undefined })} />
                         <Field label="Degree" value={e.degree} onChange={(v) => uEdu(e.id, { degree: v })} />
                         <Field label="Field of Study" value={e.field} onChange={(v) => uEdu(e.id, { field: v })} span2 />
-                        <Field label="Period" value={e.period} onChange={(v) => uEdu(e.id, { period: v })} span2 />
                         <Field label="Start (YYYY-MM)" value={e.start} onChange={(v) => uEdu(e.id, { start: v })} />
                         <Field label="End (YYYY-MM)" value={e.end} onChange={(v) => uEdu(e.id, { end: v })} />
-                        <Field label="Thesis (optional)" value={e.thesis ?? ""} onChange={(v) => uEdu(e.id, { thesis: v || undefined })} span2 />
+                        <div className="md:col-span-2 flex items-center justify-between rounded-md border border-border px-3 py-2 bg-muted/20">
+                          <span className="text-xs text-muted-foreground">Show dates on public view</span>
+                          <Switch
+                            checked={e.showDates !== false}
+                            onCheckedChange={(v) => uEdu(e.id, { showDates: v })}
+                            aria-label="Show dates"
+                          />
+                        </div>
+                        <Field label="Thesis (optional)" value={e.thesis ?? ""} onChange={(v) => uEdu(e.id, { thesis: v || undefined })} multiline rows={2} span2 hash={loadedHash} />
                       </div>
                     )}
                   </div>
@@ -1449,7 +1750,7 @@ function EditBody() {
           </TabsContent>
           {/* ── STORIES ── */}
           <TabsContent value="stories">
-            <StoriesTab stories={data.stories ?? []} onChange={setStories} />
+            <StoriesTab stories={data.stories ?? []} onChange={setStories} hash={loadedHash} />
           </TabsContent>
 
         </Tabs>

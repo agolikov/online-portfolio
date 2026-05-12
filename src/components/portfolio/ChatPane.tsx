@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Send, Bot, Check, X, Trash2 } from "lucide-react";
-import { resumesApi, type ChatMessage } from "@/lib/resumesApi";
+import { resumesApi, type ChatMessage, type SseEvent } from "@/lib/resumesApi";
 
 interface Message extends ChatMessage {
   toolsUsed?: string[];
@@ -81,21 +81,60 @@ export function ChatPane({ hash, messagesHeight = "22rem" }: Props) {
 
   async function runChat(next: Message[]) {
     setLoading(true);
+    const streamingId = Date.now();
+    setMessages((prev) => [...prev, { role: "assistant", content: "", _id: streamingId } as Message & { _id: number }]);
+
     try {
       const apiMessages = next.map(({ role, content }) => ({ role, content }));
-      const res = await resumesApi.chat(hash, apiMessages);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: res.content, toolsUsed: res.toolsUsed },
-      ]);
-      if (res.dataChanged || res.coverLetterSaved) {
-        window.dispatchEvent(new CustomEvent("resume-data-changed", { detail: { hash } }));
-      }
+      const toolsCollected: string[] = [];
+
+      await resumesApi.chatStream(hash, apiMessages, (event: SseEvent) => {
+        if (event.type === "delta") {
+          setMessages((prev) =>
+            prev.map((m) =>
+              (m as Message & { _id?: number })._id === streamingId
+                ? { ...m, content: m.content + event.text }
+                : m,
+            ),
+          );
+        } else if (event.type === "tool") {
+          toolsCollected.push(event.name);
+          setMessages((prev) =>
+            prev.map((m) =>
+              (m as Message & { _id?: number })._id === streamingId
+                ? { ...m, toolsUsed: [...toolsCollected] }
+                : m,
+            ),
+          );
+        } else if (event.type === "done") {
+          setMessages((prev) =>
+            prev.map((m) => {
+              if ((m as Message & { _id?: number })._id !== streamingId) return m;
+              const { _id: _, ...clean } = m as Message & { _id?: number };
+              return { ...clean, toolsUsed: event.toolsUsed };
+            }),
+          );
+          if (event.dataChanged || event.coverLetterSaved) {
+            window.dispatchEvent(new CustomEvent("resume-data-changed", { detail: { hash } }));
+          }
+        } else if (event.type === "error") {
+          setMessages((prev) =>
+            prev.map((m) =>
+              (m as Message & { _id?: number })._id === streamingId
+                ? { role: "assistant", content: "Something went wrong. Please try again." }
+                : m,
+            ),
+          );
+        }
+      });
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Something went wrong. Please try again." },
-      ]);
+      setMessages((prev) =>
+        prev.map((m) =>
+          (m as Message & { _id?: number })._id === streamingId
+            ? { role: "assistant", content: "Something went wrong. Please try again." }
+            : m,
+        ),
+      );
     } finally {
       setLoading(false);
     }

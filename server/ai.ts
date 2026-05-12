@@ -320,6 +320,315 @@ export async function chat(hash: string, messages: ChatMessage[]): Promise<ChatR
   return { content: "Reached tool iteration limit.", toolsUsed, dataChanged, coverLetterSaved };
 }
 
+// ── Streaming chat ────────────────────────────────────────────────────────────
+
+export interface StreamCallbacks {
+  onDelta: (text: string) => void;
+  onTool: (name: string) => void;
+  onDone: (result: ChatResponse) => void;
+  onError: (err: Error) => void;
+}
+
+export async function chatStream(hash: string, messages: ChatMessage[], cb: StreamCallbacks): Promise<void> {
+  if (!process.env.AI_API_KEY || process.env.AI_API_KEY === "no-key") {
+    cb.onDelta("AI features are disabled. Set AI_API_KEY (and optionally AI_BASE_URL, AI_MODEL) in your .env file.");
+    cb.onDone({ content: "AI features are disabled. Set AI_API_KEY (and optionally AI_BASE_URL, AI_MODEL) in your .env file.", toolsUsed: [], dataChanged: false, coverLetterSaved: false });
+    return;
+  }
+
+  const [row] = await db.select().from(resumes).where(eq(resumes.hash, hash)).limit(1);
+  if (!row) { cb.onError(new Error("Resume not found")); return; }
+
+  let portfolio = row.resumeData as Portfolio;
+  let dataChanged = false;
+  let coverLetterSaved = false;
+  const toolsUsed: string[] = [];
+
+  const thread: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    { role: "system", content: systemPrompt(portfolio) },
+    ...messages,
+  ];
+
+  for (let i = 0; i < 8; i++) {
+    const stream = await openai.chat.completions.create({
+      model: MODEL,
+      messages: thread,
+      tools: TOOLS,
+      tool_choice: "auto",
+      stream: true,
+    });
+
+    let content = "";
+    const toolCallMap: Record<number, { id: string; name: string; args: string }> = {};
+
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta;
+      if (!delta) continue;
+
+      if (delta.tool_calls) {
+        for (const tc of delta.tool_calls) {
+          if (!toolCallMap[tc.index]) toolCallMap[tc.index] = { id: "", name: "", args: "" };
+          if (tc.id) toolCallMap[tc.index].id = tc.id;
+          if (tc.function?.name) toolCallMap[tc.index].name += tc.function.name;
+          if (tc.function?.arguments) toolCallMap[tc.index].args += tc.function.arguments;
+        }
+      }
+
+      if (delta.content) {
+        content += delta.content;
+        cb.onDelta(delta.content);
+      }
+    }
+
+    const toolCallsArray = Object.values(toolCallMap);
+
+    if (toolCallsArray.length === 0) {
+      cb.onDone({ content, toolsUsed, dataChanged, coverLetterSaved });
+      return;
+    }
+
+    thread.push({
+      role: "assistant",
+      content: content || null,
+      tool_calls: toolCallsArray.map((tc) => ({
+        type: "function" as const,
+        id: tc.id,
+        function: { name: tc.name, arguments: tc.args },
+      })),
+    });
+
+    for (const tc of toolCallsArray) {
+      if (!tc.name) continue;
+      let args: Record<string, unknown> = {};
+      try { args = JSON.parse(tc.args); } catch { /* ignore */ }
+
+      toolsUsed.push(tc.name);
+      cb.onTool(tc.name);
+
+      const { result, updatedPortfolio, coverLetterSaved: cls } =
+        await executeTool(tc.name, args, hash, portfolio);
+
+      if (updatedPortfolio) { portfolio = updatedPortfolio; dataChanged = true; }
+      if (cls) coverLetterSaved = true;
+
+      thread.push({ role: "tool", tool_call_id: tc.id, content: result });
+    }
+  }
+
+  cb.onDone({ content: "Reached tool iteration limit.", toolsUsed, dataChanged, coverLetterSaved });
+}
+
+// ── Streaming cover letter generation ────────────────────────────────────────
+
+export interface CoverLetterStreamCallbacks {
+  onDelta: (text: string) => void;
+  onDone: (result: CoverLetterResult) => void;
+  onError: (err: Error) => void;
+}
+
+export async function generateCoverLetterStream(
+  hash: string,
+  vacancyText = "",
+  recipientName = "",
+  cb: CoverLetterStreamCallbacks,
+): Promise<void> {
+  const [row] = await db.select().from(resumes).where(eq(resumes.hash, hash)).limit(1);
+  if (!row) { cb.onError(new Error("Resume not found")); return; }
+
+  const portfolio = row.resumeData as Portfolio;
+  const metrics = scoreRoleFit(portfolio, vacancyText);
+  const summary = summarizeCandidate(portfolio);
+  const greetingName = recipientName.trim() || "Hiring Manager";
+  const greeting = `Dear ${greetingName},`;
+
+  if (!process.env.AI_API_KEY || process.env.AI_API_KEY === "no-key") {
+    const p = portfolio.profile;
+    const latest = portfolio.experience[0];
+    const importantGaps = metrics
+      .filter((m) => m.score < 65)
+      .map((m) => `- ${m.label}: ${m.score}% — ${m.summary}`)
+      .join("\n") || "- No major mismatch stands out from the available role text.";
+    const letter = `${greeting}\n\nI am applying as ${p.name}, ${p.title}. Here is the honest fit summary.\n\nBest fit points:\n- ${summary}\n${latest ? `- Recent role: ${latest.role} at ${latest.company}; ${latest.highlights[0] ?? "relevant delivery experience"}.` : "- Relevant professional delivery experience."}\n- Stack signals: ${portfolio.tech.slice(0, 5).map((t) => t.name).join(", ") || "not enough stack data available"}.\n\nNot-great-fit points:\n${importantGaps}\n\nRole fit:\n${metrics.map((m) => `- ${m.label}: ${m.score}% — ${m.summary}`).join("\n")}\n\nIf these trade-offs are acceptable, I would be glad to discuss where I can contribute quickly and where I would need ramp-up time.\n\nBest regards,\n${p.name}`;
+    for (const char of letter) cb.onDelta(char);
+    const updated = attachCoverLetter(portfolio, letter, vacancyText, metrics, true, summary, recipientName.trim());
+    await db.update(resumes).set({ coverLetter: letter, resumeData: updated }).where(eq(resumes.hash, hash));
+    cb.onDone({ coverLetter: letter, summary, recipientName: recipientName.trim(), metrics });
+    return;
+  }
+
+  const stream = await openai.chat.completions.create({
+    model: MODEL,
+    stream: true,
+    messages: [
+      {
+        role: "user",
+        content: `You are writing a professional cover letter. Output ONLY the cover letter text — no preamble, no explanation.
+
+Start exactly with: "${greeting}"
+
+Requirements:
+- Target 160–220 words. Plain text only.
+- Be honest and direct. If the stack, domain, seniority, or leadership level is not a great fit, say so briefly.
+- Highlight the most important fit and not-great-fit points.
+- Include tech stack overlap, experience transferability, leadership match, and overall fit.
+- End with: Best regards,\n${portfolio.profile.name}
+
+Candidate summary: ${summary}
+Vacancy text: ${vacancyText || "(none provided)"}
+Role-fit metrics:
+${metrics.map((m) => `${m.label}: ${m.score}% — ${m.summary}`).join("\n")}`,
+      },
+    ],
+  });
+
+  let coverLetter = "";
+  for await (const chunk of stream) {
+    const delta = chunk.choices[0]?.delta?.content ?? "";
+    if (delta) {
+      coverLetter += delta;
+      cb.onDelta(delta);
+    }
+  }
+
+  const updated = attachCoverLetter(portfolio, coverLetter, vacancyText, metrics, true, summary, recipientName.trim());
+  await db.update(resumes).set({ coverLetter, resumeData: updated }).where(eq(resumes.hash, hash));
+  cb.onDone({ coverLetter, summary, recipientName: recipientName.trim(), metrics });
+}
+
+// ── Generic text refine ───────────────────────────────────────────────────────
+
+export async function refineTextStream(text: string, cb: TextStreamCallbacks): Promise<void> {
+  if (!process.env.AI_API_KEY || process.env.AI_API_KEY === "no-key") {
+    cb.onDelta(text);
+    cb.onDone(text);
+    return;
+  }
+
+  const stream = await openai.chat.completions.create({
+    model: MODEL,
+    stream: true,
+    messages: [
+      {
+        role: "user",
+        content: `Fix grammar, typos, and awkward phrasing. Keep the same meaning, tone, and approximate length. Output ONLY the refined text — no preamble or explanation.\n\n${text}`,
+      },
+    ],
+  });
+
+  let result = "";
+  for await (const chunk of stream) {
+    const delta = chunk.choices[0]?.delta?.content ?? "";
+    if (delta) { result += delta; cb.onDelta(delta); }
+  }
+  cb.onDone(result);
+}
+
+// ── Cover letter edit (refine / longer / shorter) ────────────────────────────
+
+export type CoverLetterEditAction = "refine" | "longer" | "shorter";
+
+export interface TextStreamCallbacks {
+  onDelta: (text: string) => void;
+  onDone: (text: string) => void;
+  onError: (err: Error) => void;
+}
+
+const COVER_EDIT_INSTRUCTIONS: Record<CoverLetterEditAction, string> = {
+  refine: "Fix grammar, typos, and awkward phrasing only. Do not change the structure, length, or meaning.",
+  longer: "Expand this cover letter by 20–30%, adding detail to existing points without introducing new unrelated sections.",
+  shorter: "Condense this cover letter by 20–30%, removing redundancy while keeping all key points.",
+};
+
+export async function editCoverLetterStream(
+  content: string,
+  action: CoverLetterEditAction,
+  cb: TextStreamCallbacks,
+): Promise<void> {
+  if (!process.env.AI_API_KEY || process.env.AI_API_KEY === "no-key") {
+    cb.onDelta(content);
+    cb.onDone(content);
+    return;
+  }
+
+  const stream = await openai.chat.completions.create({
+    model: MODEL,
+    stream: true,
+    messages: [
+      {
+        role: "user",
+        content: `${COVER_EDIT_INSTRUCTIONS[action]} Output ONLY the revised cover letter text — no preamble or explanation.\n\nCover letter:\n${content}`,
+      },
+    ],
+  });
+
+  let result = "";
+  for await (const chunk of stream) {
+    const delta = chunk.choices[0]?.delta?.content ?? "";
+    if (delta) { result += delta; cb.onDelta(delta); }
+  }
+  cb.onDone(result);
+}
+
+// ── Profile summary edit ──────────────────────────────────────────────────────
+
+export type SummaryEditAction = "expand" | "condense" | "rebuild";
+
+const SUMMARY_INSTRUCTIONS: Record<SummaryEditAction, string> = {
+  expand: "Expand the professional summary by adding more specific detail about skills, impact, and experience. Keep it one paragraph.",
+  condense: "Condense the professional summary to its most essential points. Keep it one concise paragraph.",
+  rebuild: "Rewrite the professional summary from scratch based on the candidate context below. Keep it one strong paragraph.",
+};
+
+export async function editSummaryStream(
+  hash: string,
+  action: SummaryEditAction,
+  cb: TextStreamCallbacks,
+): Promise<void> {
+  const [row] = await db.select().from(resumes).where(eq(resumes.hash, hash)).limit(1);
+  if (!row) { cb.onError(new Error("Resume not found")); return; }
+
+  const portfolio = row.resumeData as Portfolio;
+  const p = portfolio.profile;
+
+  const visibleExp = (portfolio.experience ?? []).filter((e) => e.enabled !== false);
+  const visibleProj = (portfolio.projects ?? []).filter((e) => e.enabled !== false);
+  const visibleCerts = (portfolio.certificates ?? []).filter((e) => e.enabled !== false);
+
+  const context = [
+    `Name: ${p.name}`,
+    `Title: ${p.title}`,
+    `Current summary: ${p.summary}`,
+    visibleExp.length ? `Experience: ${visibleExp.map((e) => `${e.role} at ${e.company}`).join("; ")}` : "",
+    visibleProj.length ? `Projects: ${visibleProj.map((e) => e.name).join(", ")}` : "",
+    visibleCerts.length ? `Certifications: ${visibleCerts.map((e) => e.name).join(", ")}` : "",
+    `Skills: ${portfolio.tech.slice(0, 12).map((t) => t.name).join(", ")}`,
+  ].filter(Boolean).join("\n");
+
+  if (!process.env.AI_API_KEY || process.env.AI_API_KEY === "no-key") {
+    cb.onDelta(p.summary);
+    cb.onDone(p.summary);
+    return;
+  }
+
+  const stream = await openai.chat.completions.create({
+    model: MODEL,
+    stream: true,
+    messages: [
+      {
+        role: "user",
+        content: `${SUMMARY_INSTRUCTIONS[action]} Output ONLY the summary text — no labels or explanation.\n\nCandidate context:\n${context}`,
+      },
+    ],
+  });
+
+  let result = "";
+  for await (const chunk of stream) {
+    const delta = chunk.choices[0]?.delta?.content ?? "";
+    if (delta) { result += delta; cb.onDelta(delta); }
+  }
+  cb.onDone(result);
+}
+
 // ── Cover letter generation ───────────────────────────────────────────────────
 
 export async function generateCoverLetter(hash: string, vacancyText = "", recipientName = ""): Promise<CoverLetterResult> {

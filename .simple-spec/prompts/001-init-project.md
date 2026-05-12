@@ -24,12 +24,12 @@ Ask the following questions one section at a time. Wait for answers before proce
 ### Step 2 — Fill in spec files
 
 Using the answers, write each file in `.simple-spec/spec/`:
-- `.simple-spec/spec/01-overview.md` — project name, description, stage, **source path**
-- `.simple-spec/spec/02-stack.md` — languages, frameworks, infra, services
-- `.simple-spec/spec/03-features.md` — implemented = none, planned = what was listed
-- `.simple-spec/spec/04-pages-modules.md` — derive from features
-- `.simple-spec/spec/05-architecture.md` — derive from stack and features
-- `.simple-spec/spec/07-dependencies.md` — derive from stack
+- `.simple-spec/spec/001-overview.md` — project name, description, stage, **source path**
+- `.simple-spec/spec/002-stack.md` — languages, frameworks, infra, services
+- `.simple-spec/spec/003-features.md` — implemented = none, planned = what was listed
+- `.simple-spec/spec/004-pages-modules.md` — derive from features
+- `.simple-spec/spec/005-architecture.md` — derive from stack and features
+- `.simple-spec/spec/007-dependencies.md` — derive from stack
 
 ### Step 3 — Present and confirm
 
@@ -38,7 +38,25 @@ Ask: "Does this capture the project correctly? Anything to add or change?"
 
 Revise until approved.
 
-### Step 4 — First task
+### Step 4 — Replace starter files
+
+The simple-spec folder ships with `CLAUDE.starter.md` and `README.starter.md` as safe placeholders that won't collide with existing project files. After a successful init, replace them with real project-specific files.
+
+**CLAUDE.md**
+- Check if `CLAUDE.md` already exists at the project root.
+- If it does **not** exist: copy `CLAUDE.starter.md` to `CLAUDE.md` (no changes needed — the starter is already correct workflow instructions for Claude).
+- If it **does** exist: append the contents of `CLAUDE.starter.md` to the bottom of the existing `CLAUDE.md`, under a `## Simple-Spec Workflow` heading, avoiding any duplication.
+- Delete `CLAUDE.starter.md` after.
+
+**README.md**
+- Check if `README.md` already exists at the project root.
+- If it does **not** exist: generate a new `README.md` from the spec answers. Include: project name, one-paragraph description, tech stack, and a "Getting started" section. Use a clean, minimal format.
+- If it **does** exist: read it, then ask the user: "A README.md already exists. Do you want me to update it with the project description from the spec, or leave it as-is?"
+  - If update: prepend or replace only the top description block; preserve everything else.
+  - If leave: skip.
+- Delete `README.starter.md` after (regardless of whether README.md was updated).
+
+### Step 5 — First task
 
 Ask: "What is the first thing you want to build?"
-Create a task file in `.simple-spec/queue_tasks/` using the TEMPLATE.
+Create a task file in `.simple-spec/tasks/` using the TEMPLATE.

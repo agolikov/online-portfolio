@@ -6,9 +6,10 @@ interface Props {
   projects: Project[];
   selected: string[];
   onToggle?: (name: string) => void;
+  hideYears?: boolean;
 }
 
-export function ProjectGrid({ projects, selected, onToggle }: Props) {
+export function ProjectGrid({ projects, selected, onToggle, hideYears = false }: Props) {
   const filtered =
     selected.length === 0
       ? projects
@@ -41,13 +42,19 @@ export function ProjectGrid({ projects, selected, onToggle }: Props) {
               onClick={() => posthog.capture("project_link_clicked", { project: p.name, project_url: p.link })}
             >
               <h3 className="accent-text text-lg font-semibold">{p.name}</h3>
-              <ExternalLink size={14} className="opacity-50 group-hover:opacity-100 shrink-0" />
+              <div className="flex items-center gap-2 shrink-0">
+                {p.year && !hideYears && (
+                  <span className="text-xs tabular-nums text-muted-foreground">{p.year}</span>
+                )}
+                <ExternalLink size={14} className="opacity-50 group-hover:opacity-100" />
+              </div>
             </a>
             <p className="text-sm font-medium">{p.tagline}</p>
             <p className="text-sm text-muted-foreground">{p.description}</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {p.tech.map((t) => (
                 <button
+                  type="button"
                   key={t}
                   onClick={() => onToggle?.(t)}
                   className="chip"

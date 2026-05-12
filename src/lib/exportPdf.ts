@@ -2,8 +2,30 @@ import { jsPDF } from "jspdf";
 import type { Portfolio } from "@/types/portfolio";
 import { isVisible } from "@/lib/visibility";
 
+const LINK_LABELS: Record<string, string> = {
+  "github.com": "GitHub",
+  "gitlab.com": "GitLab",
+  "linkedin.com": "LinkedIn",
+  "leetcode.com": "LeetCode",
+  "stackoverflow.com": "Stack Overflow",
+  "medium.com": "Medium",
+  "dev.to": "Dev.to",
+  "twitter.com": "Twitter",
+  "x.com": "X",
+};
+
+function shortLink(url: string): string {
+  const host = url.replace(/^https?:\/\//, "").split("/")[0].replace(/^www\./, "");
+  return LINK_LABELS[host] ?? host;
+}
+
+function fullUrl(url: string): string {
+  return url.startsWith("http") ? url : `https://${url}`;
+}
+
 export function exportPortfolioPdf(data: Portfolio, selectedTech: string[]) {
-  const { profile, experience, projects, certificates = [], education = [] } = data;
+  const { profile, experience, projects, certificates = [], education = [], settings } = data;
+  const hideYears = settings?.hideYears ?? false;
   const visibleExperience = experience.filter(isVisible);
   const visibleProjects = projects.filter(isVisible);
   const visibleCertificates = certificates.filter(isVisible);
@@ -70,11 +92,11 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[]) {
   y += 16;
 
   const contactParts = [
-    profile.email,
-    profile.website,
-    profile.github,
-    profile.linkedin,
-  ].filter(Boolean);
+    profile.email ? `${profile.email}` : null,
+    profile.website ? shortLink(profile.website) : null,
+    profile.github ? shortLink(profile.github) : null,
+    profile.linkedin ? shortLink(profile.linkedin) : null,
+  ].filter(Boolean) as string[];
   if (contactParts.length > 0) {
     doc.setFontSize(9);
     doc.setTextColor(60);
@@ -98,7 +120,13 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[]) {
        doc.setFont("helvetica", "bold");
        doc.setFontSize(11);
        doc.setTextColor(15);
-       doc.text(`${e.role} — ${e.company}`, M, y);
+       const expTitle = `${e.role} — ${e.company}`;
+       doc.text(expTitle, M, y);
+       if (e.companyUrl) {
+         const rolePrefix = `${e.role} — `;
+         const lx = M + doc.getTextWidth(rolePrefix);
+         doc.link(lx, y - 11, doc.getTextWidth(e.company), 13, { url: fullUrl(e.companyUrl) });
+       }
        doc.setFont("helvetica", "normal");
        doc.setTextColor(90);
        doc.text(e.period, W - M, y, { align: "right" });
@@ -112,7 +140,7 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[]) {
          doc.setFont("helvetica", "normal");
          doc.setFontSize(10);
          doc.setTextColor(40);
-         const lines = doc.splitTextToSize("• " + h, W - M * 2 - 10) as string[];
+         const lines = doc.splitTextToSize(`• ${h}`, W - M * 2 - 10) as string[];
          lines.forEach((l) => {
            ensure(13);
            doc.text(l, M + 8, y);
@@ -123,7 +151,7 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[]) {
        doc.setFont("helvetica", "italic");
        doc.setFontSize(9);
        doc.setTextColor(80);
-       const techLine = "Tech: " + e.tech.join(", ");
+       const techLine = `Tech: ${e.tech.join(", ")}`;
        const techLines = doc.splitTextToSize(techLine, W - M * 2) as string[];
        techLines.forEach((l) => {
          ensure(12);
@@ -138,7 +166,7 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[]) {
    if (prjFiltered.length > 0) {
      rule();
      y += 4;
-     text("PROJECTS", SECTION_TITLE_OPTS);
+     text("SIDE PROJECTS", SECTION_TITLE_OPTS);
      y += SECTION_GAP_AFTER_TITLE;
 
      prjFiltered.forEach((p) => {
@@ -146,18 +174,24 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[]) {
        doc.setFont("helvetica", "bold");
        doc.setFontSize(11);
        doc.setTextColor(15);
-       doc.text(p.name, M, y);
+       const projTitle = (p.year && !hideYears) ? `${p.name} · ${p.year}` : p.name;
+       doc.text(projTitle, M, y);
        doc.setFont("helvetica", "normal");
        doc.setFontSize(9);
        doc.setTextColor(110);
-       doc.text(p.link, W - M, y, { align: "right" });
+       if (p.link) {
+         const label = shortLink(p.link);
+         doc.text(label, W - M, y, { align: "right" });
+         const lw = doc.getTextWidth(label);
+         doc.link(W - M - lw, y - 9, lw, 11, { url: fullUrl(p.link) });
+       }
        y += 13;
        text(p.tagline, { size: 10, bold: true, color: 40, gap: 3 });
        text(p.description, { size: 10, color: 60, gap: 3 });
        doc.setFont("helvetica", "italic");
        doc.setFontSize(9);
        doc.setTextColor(80);
-       const techLines = doc.splitTextToSize("Tech: " + p.tech.join(", "), W - M * 2) as string[];
+       const techLines = doc.splitTextToSize(`Tech: ${p.tech.join(", ")}`, W - M * 2) as string[];
        techLines.forEach((l) => {
          ensure(12);
          doc.text(l, M, y);
@@ -179,9 +213,11 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[]) {
        doc.setFontSize(10);
        doc.setTextColor(20);
        doc.text(c.name, M, y);
-       doc.setFont("helvetica", "normal");
-       doc.setTextColor(90);
-       doc.text(c.year, W - M, y, { align: "right" });
+       if (!hideYears && c.year) {
+         doc.setFont("helvetica", "normal");
+         doc.setTextColor(90);
+         doc.text(c.year, W - M, y, { align: "right" });
+       }
        y += 12;
        doc.setFontSize(9);
        doc.setTextColor(90);
@@ -204,10 +240,12 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[]) {
        doc.setFontSize(10);
        doc.setTextColor(20);
        doc.text(edu.institution, M, y);
-       doc.setFont("helvetica", "normal");
-       doc.setFontSize(9);
-       doc.setTextColor(110);
-       doc.text(edu.period, W - M, y, { align: "right" });
+       if (!hideYears && edu.period) {
+         doc.setFont("helvetica", "normal");
+         doc.setFontSize(9);
+         doc.setTextColor(110);
+         doc.text(edu.period, W - M, y, { align: "right" });
+       }
        y += 14;
 
        doc.setFont("helvetica", "normal");

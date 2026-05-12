@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { resumesApi, type ResumeRow } from "@/lib/resumesApi";
+import { PageSpinner } from "@/components/ui/PageSpinner";
 import { PortfolioBody } from "./Index";
 
 function ResumeHashBody() {
@@ -28,13 +29,7 @@ function ResumeHashBody() {
 
   if (notFound) return <Navigate to="/" replace />;
 
-  if (!row) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
-        Loading…
-      </div>
-    );
-  }
+  if (!row) return <PageSpinner />;
 
   return <PortfolioBody externalData={row.resumeData} />;
 }

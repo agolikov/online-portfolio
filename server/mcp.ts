@@ -147,7 +147,7 @@ const hashInput = {
 
 export function createPortfolioMcpServer() {
   const server = new McpServer({
-    name: "online-portfolio-data",
+    name: "interactive-resume-data",
     version: "1.0.0",
   });
 

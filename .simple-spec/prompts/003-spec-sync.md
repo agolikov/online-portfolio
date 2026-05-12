@@ -18,24 +18,24 @@ Read all files in `.simple-spec/spec/` in full. Note every section.
 
 Compare each spec file against the actual code:
 
-**`.simple-spec/spec/02-stack.md`** — Does it list the correct versions and services?
+**`.simple-spec/spec/002-stack.md`** — Does it list the correct versions and services?
 Check: `package.json`, config files, `.env.example`, `Dockerfile`.
 
-**`.simple-spec/spec/03-features.md`** — Are all implemented features actually in the code?
+**`.simple-spec/spec/003-features.md`** — Are all implemented features actually in the code?
 Check: routes, pages, API endpoints, visible UI.
 Are any "planned" features already partially or fully implemented?
 
-**`.simple-spec/spec/04-pages-modules.md`** — Does the table match the actual routes and directories?
+**`.simple-spec/spec/004-pages-modules.md`** — Does the table match the actual routes and directories?
 
-**`.simple-spec/spec/05-architecture.md`** — Does the directory structure match? Have any module responsibilities shifted?
+**`.simple-spec/spec/005-architecture.md`** — Does the directory structure match? Have any module responsibilities shifted?
 
-**`.simple-spec/spec/06-data-models.md`** — Do the listed models match the actual schema?
+**`.simple-spec/spec/006-data-models.md`** — Do the listed models match the actual schema?
 Check: migration files, ORM models, Prisma schema, etc.
 
-**`.simple-spec/spec/07-dependencies.md`** — Are all dependencies listed and up to date?
+**`.simple-spec/spec/007-dependencies.md`** — Are all dependencies listed and up to date?
 Check `package.json` or equivalent.
 
-**`.simple-spec/spec/09-debt.md`** — Are there new TODO comments, known issues, or debt that isn't listed?
+**`.simple-spec/spec/009-debt.md`** — Are there new TODO comments, known issues, or debt that isn't listed?
 
 ### Step 3 — Generate diff
 
@@ -52,4 +52,4 @@ Ask: "Does this look accurate? Anything I missed?"
 ### Step 5 — Apply updates
 
 On approval, update each affected `.simple-spec/spec/` file with the confirmed changes.
-Add an entry to `.simple-spec/spec/10-changelog.md` with today's date: "Spec sync — [brief summary of what changed]".
+Add an entry to `.simple-spec/spec/010-changelog.md` with today's date: "Spec sync — [brief summary of what changed]".

@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { PageSpinner } from "@/components/ui/PageSpinner";
 
 const queryClient = new QueryClient();
 const Index = lazy(() => import("./pages/Index.tsx"));
@@ -17,7 +18,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Suspense fallback={null}>
+        <Suspense fallback={<PageSpinner />}>
           <Routes>
             <Route path="/" element={<Index />} />
             {import.meta.env.DEV && <Route path="/edit" element={<EditPage />} />}

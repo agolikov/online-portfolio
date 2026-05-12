@@ -16,6 +16,7 @@ export interface Experience {
   id: string;
   enabled?: boolean;
   company: string;
+  companyUrl?: string;
   role: string;
   period: string;
   /** ISO YYYY-MM (or YYYY) start date — used to compute years per tech */
@@ -33,6 +34,7 @@ export interface Project {
   tagline: string;
   description: string;
   link: string;
+  year?: string;
   tech: string[];
 }
 export interface Certificate {
@@ -55,6 +57,7 @@ export interface Education {
   period: string;
   start: string;
   end: string;
+  showDates?: boolean;
   thesis?: string;
   skills?: string[];
 }
@@ -89,6 +92,10 @@ export interface PortfolioCoverLetters {
   current?: PortfolioCoverLetter;
 }
 
+export interface PortfolioSettings {
+  hideYears?: boolean;
+}
+
 export interface Portfolio {
   profile: Profile;
   tech: Tech[];
@@ -98,4 +105,5 @@ export interface Portfolio {
   education?: Education[];
   stories?: Story[];
   coverLetters?: PortfolioCoverLetters;
+  settings?: PortfolioSettings;
 }
