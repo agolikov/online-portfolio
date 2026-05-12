@@ -14,9 +14,16 @@ export function Header({ profile }: { profile: Profile }) {
     <header className="paper animate-fade-in px-4 py-6 md:px-6 md:py-8">
       <div className="grid gap-5 md:grid-cols-[minmax(0,0.85fr)_minmax(280px,1fr)] md:items-end">
         <div>
-          <h1 className="max-w-sm text-3xl font-semibold leading-[1.05] tracking-tight md:text-5xl">
-            {profile.name}
-          </h1>
+          <div className="flex max-w-sm flex-wrap items-center gap-2">
+            <h1 className="text-3xl font-semibold leading-[1.05] tracking-tight md:text-5xl">
+              {profile.name}
+            </h1>
+            {import.meta.env.DEV && (
+              <span className="rounded border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-widest text-destructive">
+                DEV
+              </span>
+            )}
+          </div>
           <p className="accent-text mt-2 text-lg font-medium md:text-xl">{profile.title}</p>
         </div>
 
