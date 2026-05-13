@@ -6,10 +6,9 @@ interface Props {
   projects: Project[];
   selected: string[];
   onToggle?: (name: string) => void;
-  hideYears?: boolean;
 }
 
-export function ProjectGrid({ projects, selected, onToggle, hideYears = false }: Props) {
+export function ProjectGrid({ projects, selected, onToggle }: Props) {
   const filtered =
     selected.length === 0
       ? projects
@@ -43,7 +42,7 @@ export function ProjectGrid({ projects, selected, onToggle, hideYears = false }:
             >
               <h3 className="accent-text text-lg font-semibold">{p.name}</h3>
               <div className="flex items-center gap-2 shrink-0">
-                {p.year && !hideYears && (
+                {p.year && !p.hideYear && (
                   <span className="text-xs tabular-nums text-muted-foreground">{p.year}</span>
                 )}
                 <ExternalLink size={14} className="opacity-50 group-hover:opacity-100" />

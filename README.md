@@ -192,9 +192,12 @@ Typical workflow:
 ```bash
 # Build and start (supply your database URL)
 DATABASE_URL=postgres://... docker compose up --build
+
+# Run the dev server in Docker, including the dev-only editor route
+DOCKER_RUN_MODE=dev DATABASE_URL=postgres://... docker compose up --build
 ```
 
-The Compose file does not include a database container — point `DATABASE_URL` at an existing PostgreSQL instance. The app listens on port `3010`.
+The Compose file does not include a database container — point `DATABASE_URL` at an existing PostgreSQL instance. The app listens on port `3010`. `DOCKER_RUN_MODE=dev` runs the Vite-backed development server inside the container; the default mode runs the production build.
 
 ---
 

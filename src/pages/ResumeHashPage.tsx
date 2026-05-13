@@ -31,7 +31,7 @@ function ResumeHashBody() {
 
   if (!row) return <PageSpinner />;
 
-  return <PortfolioBody externalData={row.resumeData} />;
+  return <PortfolioBody externalData={row.resumeData} resumeSlug={row.alias ?? row.hash} />;
 }
 
 export default function ResumeHashPage() {

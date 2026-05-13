@@ -32,8 +32,9 @@ function parseTechParam(s: string | null): string[] {
   return s.split(",").map((t) => t.trim()).filter(Boolean);
 }
 
-export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {}) {
+export function PortfolioBody({ externalData, resumeSlug }: { externalData?: Portfolio; resumeSlug?: string } = {}) {
   const [defaultData, setDefaultData] = useState<Portfolio | null>(null);
+  const [defaultSlug, setDefaultSlug] = useState<string | undefined>(resumeSlug);
   const [defaultLoaded, setDefaultLoaded] = useState(Boolean(externalData));
   const data = externalData ?? defaultData ?? (staticData as Portfolio);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -45,6 +46,7 @@ export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {
       .then((row) => {
         if (!mounted) return;
         setDefaultData(row?.resumeData ?? null);
+        if (row) setDefaultSlug(row.alias ?? row.hash);
       })
       .catch(() => {
         if (!mounted) return;
@@ -105,7 +107,8 @@ export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {
 
   async function exportPdf() {
     const { exportPortfolioPdf } = await import("@/lib/exportPdf");
-    exportPortfolioPdf(data, selected);
+    const resumeUrl = defaultSlug ? `${window.location.origin}/${defaultSlug}` : undefined;
+    exportPortfolioPdf(data, selected, resumeUrl);
   }
 
   const currentCoverLetter = data.coverLetters?.current;
@@ -162,13 +165,13 @@ export function PortfolioBody({ externalData }: { externalData?: Portfolio } = {
           <ExperienceList experience={visibleExperience} selected={selected} onToggle={toggle} />
         )}
         {visibleProjects.length > 0 && (
-          <ProjectGrid projects={visibleProjects} selected={selected} onToggle={toggle} hideYears={data.settings?.hideYears} />
+          <ProjectGrid projects={visibleProjects} selected={selected} onToggle={toggle} />
         )}
         {visibleCertificates.length > 0 && (
-          <CertificateList certificates={visibleCertificates} selected={selected} hideYears={data.settings?.hideYears} />
+          <CertificateList certificates={visibleCertificates} selected={selected} />
         )}
         {visibleEducation.length > 0 && (
-          <EducationList education={visibleEducation} hideYears={data.settings?.hideYears} />
+          <EducationList education={visibleEducation} />
         )}
         {visibleStories.length > 0 && (
           <StoriesList stories={visibleStories} />

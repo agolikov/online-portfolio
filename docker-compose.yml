@@ -9,6 +9,7 @@ services:
       - "3010:3010"
     environment:
       PORT: 3010
+      DOCKER_RUN_MODE: ${DOCKER_RUN_MODE:-dev}
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL to an external PostgreSQL connection string}
       AI_API_KEY: ${AI_API_KEY:-}
       AI_BASE_URL: ${AI_BASE_URL:-}

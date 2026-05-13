@@ -35,6 +35,7 @@ export interface Project {
   description: string;
   link: string;
   year?: string;
+  hideYear?: boolean;
   tech: string[];
 }
 export interface Certificate {
@@ -43,6 +44,7 @@ export interface Certificate {
   name: string;
   issuer: string;
   year: string;
+  hideYear?: boolean;
   credentialId?: string;
   link?: string;
   tech?: string[];
@@ -92,10 +94,6 @@ export interface PortfolioCoverLetters {
   current?: PortfolioCoverLetter;
 }
 
-export interface PortfolioSettings {
-  hideYears?: boolean;
-}
-
 export interface Portfolio {
   profile: Profile;
   tech: Tech[];
@@ -105,5 +103,4 @@ export interface Portfolio {
   education?: Education[];
   stories?: Story[];
   coverLetters?: PortfolioCoverLetters;
-  settings?: PortfolioSettings;
 }

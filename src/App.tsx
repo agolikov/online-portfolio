@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,22 +12,21 @@ const EditPage = lazy(() => import("./pages/EditPage.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const ResumeHashPage = lazy(() => import("./pages/ResumeHashPage.tsx"));
 
+const wrap = (el: React.ReactNode) => <Suspense fallback={<PageSpinner />}>{el}</Suspense>;
+
+const router = createBrowserRouter([
+  { path: "/", element: wrap(<Index />) },
+  ...(import.meta.env.DEV ? [{ path: "/edit", element: wrap(<EditPage />) }] : []),
+  { path: "/:hash", element: wrap(<ResumeHashPage />) },
+  { path: "*", element: wrap(<NotFound />) },
+]);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Suspense fallback={<PageSpinner />}>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            {import.meta.env.DEV && <Route path="/edit" element={<EditPage />} />}
-            <Route path="/:hash" element={<ResumeHashPage />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
+      <RouterProvider router={router} />
     </TooltipProvider>
   </QueryClientProvider>
 );

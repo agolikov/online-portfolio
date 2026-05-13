@@ -11,13 +11,13 @@ function fmtDate(d: string): string {
   return `${MONTHS[parseInt(month, 10) - 1] ?? ""} ${year}`.trim();
 }
 
-export function EducationList({ education, hideYears = false }: { education: Education[]; hideYears?: boolean }) {
+export function EducationList({ education }: { education: Education[] }) {
   return (
     <section className="paper rule animate-fade-in px-4 py-6 md:px-6 md:py-8">
       <h2 className="section-title mb-5 md:mb-7">Education</h2>
       <ul className="space-y-0">
         {education.map((e) => {
-          const showDates = e.showDates !== false && !hideYears && (e.start || e.end);
+          const showDates = e.showDates !== false && (e.start || e.end);
           const dateLine = showDates
             ? `${fmtDate(e.start)}${e.end ? ` – ${fmtDate(e.end)}` : ""}`
             : null;

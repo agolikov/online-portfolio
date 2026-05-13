@@ -3,7 +3,7 @@ import type { Portfolio } from "@/types/portfolio";
 import { resumesApi, type ResumeRow } from "@/lib/resumesApi";
 import { toast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
-import { Download, Upload, Plus, Trash2, RefreshCw, ExternalLink, Save } from "lucide-react";
+import { Download, Upload, Copy, Trash2, RefreshCw, ExternalLink, Save } from "lucide-react";
 
 // ── Note input ────────────────────────────────────────────────────────────────
 
@@ -99,11 +99,9 @@ function AliasInput({
 // ── Resumes tab ───────────────────────────────────────────────────────────────
 
 export function ResumesTab({
-  currentData,
   loadedHash,
   onLoad,
 }: {
-  currentData: Portfolio;
   loadedHash: string | null;
   onLoad: (p: Portfolio, hash: string) => void;
 }) {
@@ -125,13 +123,13 @@ export function ResumesTab({
     refresh();
   }, [refresh]);
 
-  async function createFromCurrent() {
+  async function cloneRow(row: ResumeRow) {
     try {
-      await resumesApi.create(currentData);
+      await resumesApi.create(row.resumeData);
       await refresh();
-      toast({ title: "Resume created" });
+      toast({ title: "Cloned", description: `Copy of ${row.hash} created.` });
     } catch (e) {
-      toast({ title: "Failed to create", description: String(e), variant: "destructive" });
+      toast({ title: "Clone failed", description: String(e), variant: "destructive" });
     }
   }
 
@@ -195,14 +193,6 @@ export function ResumesTab({
   return (
     <div className="mt-6 space-y-4">
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={createFromCurrent}
-          className="chip flex items-center gap-1.5"
-          data-active="true"
-        >
-          <Plus size={12} /> Create from current
-        </button>
         <label className="chip flex items-center gap-1.5 cursor-pointer">
           <Upload size={12} /> Import JSON
           <input type="file" accept="application/json" className="hidden" onChange={importJson} />
@@ -268,6 +258,14 @@ export function ResumesTab({
                       aria-label="Toggle enabled"
                     />
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => cloneRow(row)}
+                    className="chip flex items-center gap-1"
+                    title="Clone this resume"
+                  >
+                    <Copy size={11} /> Clone
+                  </button>
                   <button
                     type="button"
                     onClick={() => loadRow(row)}

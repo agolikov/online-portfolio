@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useBlocker } from "react-router-dom";
 import staticData from "@/data/portfolio.json";
 import type { Portfolio, Experience, Project, Certificate, Education, Tech, Story } from "@/types/portfolio";
 import { clearPortfolioOverride, loadPortfolio, savePortfolioOverride } from "@/lib/portfolioStore";
@@ -10,7 +10,8 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Save, RotateCcw, Download, Upload, Plus } from "lucide-react";
+import { ArrowLeft, RotateCcw, Download, Upload, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, TagEditor, HighlightEditor, CardHeader } from "@/components/editor/EditorShared";
 import { move, uid } from "@/components/editor/EditorSharedUtils";
 import { TechTab } from "@/components/editor/TechTab";
@@ -20,11 +21,13 @@ import { ResumesTab } from "@/components/editor/ResumesTab";
 import { SummaryField } from "@/components/editor/SummaryField";
 
 const LAST_LOADED_RESUME_KEY = "portfolio-edit-last-loaded-resume";
+const LAST_TAB_KEY = "portfolio-edit-last-tab";
 
 // ── Main editor body ──────────────────────────────────────────────────────────
 
 function EditBody() {
   const [data, setData] = useState<Portfolio>(() => loadPortfolio());
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem(LAST_TAB_KEY) ?? "resumes");
   const [expanded, setExpanded] = useState<Record<string, Set<string>>>({
     exp: new Set(),
     proj: new Set(),
@@ -198,12 +201,33 @@ function EditBody() {
   const removeEdu = (id: string) =>
     setData((d) => ({ ...d, education: (d.education ?? []).filter((e) => e.id !== id) }));
 
+  // ── Tab persistence ──────────────────────────────────────────────────────────
+
+  function handleTabChange(value: string) {
+    setActiveTab(value);
+    localStorage.setItem(LAST_TAB_KEY, value);
+  }
+
+  // ── Auto-save to localStorage ────────────────────────────────────────────────
+
+  useEffect(() => {
+    savePortfolioOverride(data);
+  }, [data]);
+
+  // ── Leave-page guard ─────────────────────────────────────────────────────────
+
+  const hasUnsaved = loadedHash !== null && (autoSaveState === "pending" || autoSaveState === "saving" || autoSaveState === "error");
+  const blocker = useBlocker(hasUnsaved);
+
+  useEffect(() => {
+    if (!hasUnsaved) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [hasUnsaved]);
+
   // ── Toolbar actions ──────────────────────────────────────────────────────────
 
-  function save() {
-    savePortfolioOverride(data);
-    toast({ title: "Saved", description: "Live preview updated." });
-  }
   function reset() {
     if (!confirm("Reset to bundled portfolio.json? This clears your local override.")) return;
     clearPortfolioOverride();
@@ -271,19 +295,15 @@ function EditBody() {
             <button type="button" onClick={reset} className="chip flex items-center gap-1.5">
               <RotateCcw size={12} /> Reset
             </button>
-            <button type="button" onClick={save} className="chip flex items-center gap-1.5" data-active="true">
-              <Save size={12} /> Save
-            </button>
           </div>
         </div>
 
         <p className="text-sm text-muted-foreground">
-          Edits are saved to <strong>localStorage</strong> for live preview (hit <strong>Save</strong>). Go to the{" "}
+          Edits auto-save to <strong>localStorage</strong> for live preview. Go to the{" "}
           <strong>Resumes</strong> tab to publish to the database and get a shareable link.
           {loadedHash ? (
             <>
-              {" "}Editing DB resume <code className="font-mono text-xs">{loadedHash}</code> — changes auto-save after
-              1.5 s.
+              {" "}Editing DB resume <code className="font-mono text-xs">{loadedHash}</code> — changes auto-save after 1.5 s.
             </>
           ) : (
             <>
@@ -292,7 +312,7 @@ function EditBody() {
           )}
         </p>
 
-        <Tabs defaultValue="resumes">
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
             {(
               [
@@ -316,7 +336,7 @@ function EditBody() {
 
           {/* ── RESUMES ── */}
           <TabsContent value="resumes">
-            <ResumesTab currentData={data} loadedHash={loadedHash} onLoad={handleLoad} />
+            <ResumesTab loadedHash={loadedHash} onLoad={handleLoad} />
           </TabsContent>
 
           {/* ── COVER LETTER ── */}
@@ -337,19 +357,6 @@ function EditBody() {
 
           {/* ── PROFILE ── */}
           <TabsContent value="profile" className="mt-6 space-y-4">
-            <div className="flex items-center justify-between rounded-md border border-border px-4 py-3 bg-muted/30">
-              <div>
-                <p className="text-sm font-medium">Hide years</p>
-                <p className="text-xs text-muted-foreground">
-                  Suppress years on projects, certificates, and education in public view and PDF.
-                </p>
-              </div>
-              <Switch
-                checked={data.settings?.hideYears ?? false}
-                onCheckedChange={(v) => setData((d) => ({ ...d, settings: { ...d.settings, hideYears: v } }))}
-                aria-label="Hide years"
-              />
-            </div>
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Name" value={data.profile.name} onChange={(v) => sp({ name: v })} />
               <Field label="Title" value={data.profile.title} onChange={(v) => sp({ title: v })} />
@@ -450,6 +457,10 @@ function EditBody() {
                       <div className="px-4 py-4 grid gap-4 md:grid-cols-2">
                         <Field label="Name" value={p.name} onChange={(v) => up(p.id, { name: v })} />
                         <Field label="Year" value={p.year ?? ""} onChange={(v) => up(p.id, { year: v || undefined })} />
+                        <div className="flex items-center justify-between rounded-md border border-border px-3 py-2 bg-muted/20">
+                          <span className="text-xs text-muted-foreground">Hide year</span>
+                          <Switch checked={p.hideYear ?? false} onCheckedChange={(v) => up(p.id, { hideYear: v })} aria-label="Hide year" />
+                        </div>
                         <Field label="Link" value={p.link} onChange={(v) => up(p.id, { link: v })} />
                         <Field label="Tagline" value={p.tagline} onChange={(v) => up(p.id, { tagline: v })} span2 />
                         <Field label="Description" value={p.description} onChange={(v) => up(p.id, { description: v })} multiline rows={3} span2 hash={loadedHash} />
@@ -497,6 +508,10 @@ function EditBody() {
                         <Field label="Name" value={c.name} onChange={(v) => uc(c.id, { name: v })} span2 />
                         <Field label="Issuer" value={c.issuer} onChange={(v) => uc(c.id, { issuer: v })} />
                         <Field label="Year" value={c.year} onChange={(v) => uc(c.id, { year: v })} />
+                        <div className="flex items-center justify-between rounded-md border border-border px-3 py-2 bg-muted/20">
+                          <span className="text-xs text-muted-foreground">Hide year</span>
+                          <Switch checked={c.hideYear ?? false} onCheckedChange={(v) => uc(c.id, { hideYear: v })} aria-label="Hide year" />
+                        </div>
                         <Field label="Credential ID" value={c.credentialId ?? ""} onChange={(v) => uc(c.id, { credentialId: v || undefined })} />
                         <Field label="Link" value={c.link ?? ""} onChange={(v) => uc(c.id, { link: v || undefined })} />
                         <TagEditor
@@ -568,6 +583,22 @@ function EditBody() {
           </TabsContent>
 
         </Tabs>
+
+        <Dialog open={blocker.state === "blocked"} onOpenChange={() => blocker.reset?.()}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Leave without saving?</DialogTitle>
+              <DialogDescription>
+                Unsaved changes will be deleted if you leave now.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <button type="button" className="chip" onClick={() => blocker.reset?.()}>Stay</button>
+              <button type="button" className="chip" data-active="true" onClick={() => blocker.proceed?.()}>Leave</button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
       </main>
     </div>
   );
