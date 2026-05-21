@@ -3,7 +3,7 @@
 > Last updated: <!-- date -->
 > Status: <!-- draft | active | stable -->
 
-**Name:** <!-- project name -->
-**Description:** <!-- one paragraph summary of what this project does and for whom -->
-**Stage:** <!-- idea | prototype | alpha | beta | production -->
+**Name:** Online Resume
+**Description:** Full-stack personal portfolio and resume application for publishing public resume pages, managing role-specific variants, generating cover letters, and editing resume data from a built-in development editor.
+**Stage:** prototype
 **Source path:** `src/`, `server/`
