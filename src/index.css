@@ -2,18 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
-  Two visual modes via [data-mode] on <html>:
-   - "boring"   : strict B&W, single continuous page, no frames
-   - "colorful" : modern, supports light/dark + dynamic --accent-h
-*/
+/* Black-and-white visual mode, with light and dark schemes. */
 
 @layer base {
-  :root {
-    --accent-h: 152 76% 44%;
-  }
-
-  /* ===== BORING MODE (default) — paper white ===== */
+  /* ===== BLACK AND WHITE — light ===== */
   html[data-mode="boring"] {
     --background: 0 0% 100%;
     --foreground: 0 0% 10%;
@@ -37,70 +29,11 @@
     --radius: 0rem;
   }
 
-  /* ===== COLORFUL — light ===== */
-  html[data-mode="colorful"] {
-    --background: 220 20% 98%;
-    --foreground: 222 30% 12%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 30% 12%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 30% 12%;
-    --primary: var(--accent-h);
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 15% 94%;
-    --secondary-foreground: 222 30% 12%;
-    --muted: 220 15% 94%;
-    --muted-foreground: 220 10% 42%;
-    --accent: var(--accent-h);
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 15% 88%;
-    --input: 220 15% 88%;
-    --ring: var(--accent-h);
-    --radius: 0.75rem;
-  }
-
-  /* ===== COLORFUL — dark ===== */
-  html[data-mode="colorful"].dark {
-    --background: 222 28% 7%;
-    --foreground: 210 30% 96%;
-    --card: 222 25% 10%;
-    --card-foreground: 210 30% 96%;
-    --popover: 222 25% 10%;
-    --popover-foreground: 210 30% 96%;
-    --primary: var(--accent-h);
-    --primary-foreground: 222 28% 7%;
-    --secondary: 222 20% 14%;
-    --secondary-foreground: 210 30% 96%;
-    --muted: 222 20% 14%;
-    --muted-foreground: 220 10% 65%;
-    --accent: var(--accent-h);
-    --accent-foreground: 222 28% 7%;
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 210 30% 96%;
-    --border: 222 20% 18%;
-    --input: 222 20% 18%;
-    --ring: var(--accent-h);
-  }
-}
-
-@layer base {
-  * { @apply border-border; }
-  body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "ss01", "cv11";
-  }
-
-  /* Boring mode → clean readable serif/sans, no paper texture */
-  html[data-mode="boring"] body {
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background: hsl(var(--background));
-  }
    html[data-mode="boring"] {
      font-size: 16px;
      line-height: 1.65;
    }
+   /* ===== BLACK AND WHITE — dark ===== */
    html[data-mode="boring"].dark {
      --background: 0 0% 8%;
      --foreground: 0 0% 92%;
@@ -122,37 +55,31 @@
      --input: 0 0% 20%;
      --ring: 0 0% 92%;
    }
+}
 
-  html[data-mode="colorful"] body {
-    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "ss01", "cv11";
+  }
+
+  html[data-mode="boring"] body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background: hsl(var(--background));
   }
 }
 
 @layer components {
-  /*
-    .paper used to be a framed PDF page. In boring mode it is now an
-    unframed, transparent block — a single flowing document. In colorful
-    mode it remains a card.
-  */
   .paper { @apply bg-transparent text-foreground; }
   html[data-mode="boring"] .paper {
     background: transparent;
     border: 0;
   }
-  html[data-mode="colorful"] .paper {
-    background: transparent;
-    border: 0;
-    box-shadow: none;
-  }
 
   .toolbar-surface {
     border: 1px solid hsl(var(--border));
     background: hsl(var(--background) / 0.92);
-  }
-  html[data-mode="colorful"] .toolbar-surface {
-    border-radius: 8px;
-    box-shadow: 0 10px 30px -24px hsl(var(--foreground) / 0.35);
   }
   html[data-mode="boring"] .toolbar-surface {
     border-left: 0;
@@ -184,21 +111,12 @@
     border-color: hsl(var(--foreground) / 0.5);
     border-radius: 2px;
   }
-  html[data-mode="colorful"] .chip {
-    @apply rounded-full px-3;
-  }
   .chip[data-active="true"] {
     background: hsl(var(--foreground));
     color: hsl(var(--background));
     border-color: hsl(var(--foreground));
   }
-  html[data-mode="colorful"] .chip[data-active="true"] {
-    background: hsl(var(--accent));
-    color: hsl(var(--accent-foreground));
-    border-color: hsl(var(--accent));
-  }
   .chip[data-dim="true"] { opacity: 0.4; }
 
   .accent-text { color: hsl(var(--foreground)); }
-  html[data-mode="colorful"] .accent-text { color: hsl(var(--accent)); }
 }

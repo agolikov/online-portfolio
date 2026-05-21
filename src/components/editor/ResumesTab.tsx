@@ -3,7 +3,8 @@ import type { Portfolio } from "@/types/portfolio";
 import { resumesApi, type ResumeRow } from "@/lib/resumesApi";
 import { toast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
-import { Download, Upload, Copy, Trash2, RefreshCw, ExternalLink, Save } from "lucide-react";
+import { Download, Trash2, ExternalLink, Save, Plus } from "lucide-react";
+import { ResumeWizard } from "./ResumeWizard";
 
 // ── Note input ────────────────────────────────────────────────────────────────
 
@@ -103,10 +104,11 @@ export function ResumesTab({
   onLoad,
 }: {
   loadedHash: string | null;
-  onLoad: (p: Portfolio, hash: string) => void;
+  onLoad: (p: Portfolio, hash: string, alias?: string | null) => void;
 }) {
   const [rows, setRows] = useState<ResumeRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -123,34 +125,6 @@ export function ResumesTab({
     refresh();
   }, [refresh]);
 
-  async function cloneRow(row: ResumeRow) {
-    try {
-      await resumesApi.create(row.resumeData);
-      await refresh();
-      toast({ title: "Cloned", description: `Copy of ${row.hash} created.` });
-    } catch (e) {
-      toast({ title: "Clone failed", description: String(e), variant: "destructive" });
-    }
-  }
-
-  async function importJson(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const parsed = JSON.parse(String(reader.result ?? "")) as Portfolio;
-        await resumesApi.create(parsed);
-        await refresh();
-        toast({ title: "Imported", description: file.name });
-      } catch {
-        toast({ title: "Import failed", description: "Invalid JSON", variant: "destructive" });
-      }
-    };
-    reader.readAsText(file);
-  }
-
   async function toggleRow(hash: string) {
     try {
       await resumesApi.toggle(hash);
@@ -164,21 +138,23 @@ export function ResumesTab({
     try {
       await resumesApi.setDefault(hash);
       await refresh();
-      toast({ title: "Default resume set", description: `/${hash} data will be used on the home page.` });
+      const row = rows.find((r) => r.hash === hash);
+      toast({ title: "Default resume set", description: `${row?.alias ? `/${row.alias}` : "This resume"} will be used on the home page.` });
     } catch (e) {
       toast({ title: "Set default failed", description: String(e), variant: "destructive" });
     }
   }
 
   function loadRow(row: ResumeRow) {
-    onLoad(row.resumeData, row.hash);
-    toast({ title: "Loaded", description: `Resume ${row.hash} loaded into editor.` });
+    onLoad(row.resumeData, row.hash, row.alias);
+    toast({ title: "Loaded", description: `${row.alias ? `/${row.alias}` : row.resumeData.profile?.name ?? "Resume"} loaded into editor.` });
   }
 
-  async function deleteRow(hash: string) {
-    if (!confirm(`Delete resume ${hash}? This cannot be undone.`)) return;
+  async function deleteRow(row: ResumeRow) {
+    const label = row.alias ? `/${row.alias}` : row.resumeData.profile?.name ?? "this resume";
+    if (!confirm(`Delete ${label}? This cannot be undone.`)) return;
     try {
-      await resumesApi.remove(hash);
+      await resumesApi.remove(row.hash);
       await refresh();
       toast({ title: "Deleted" });
     } catch (e) {
@@ -190,22 +166,30 @@ export function ResumesTab({
     setRows((prev) => prev.map((r) => (r.hash === hash ? { ...r, alias } : r)));
   }
 
+  async function handleWizardCreated(row: ResumeRow) {
+    await refresh();
+    onLoad(row.resumeData, row.hash, row.alias);
+  }
+
   return (
     <div className="mt-6 space-y-4">
       <div className="flex flex-wrap gap-2">
-        <label className="chip flex items-center gap-1.5 cursor-pointer">
-          <Upload size={12} /> Import JSON
-          <input type="file" accept="application/json" className="hidden" onChange={importJson} />
-        </label>
-        <button type="button" onClick={refresh} className="chip flex items-center gap-1.5">
-          <RefreshCw size={12} /> Refresh
+        <button type="button" onClick={() => setWizardOpen(true)} className="chip flex items-center gap-1.5" data-active="true">
+          <Plus size={12} /> Create
         </button>
       </div>
+
+      <ResumeWizard
+        open={wizardOpen}
+        rows={rows}
+        onOpenChange={setWizardOpen}
+        onCreated={(row) => void handleWizardCreated(row)}
+      />
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No resumes yet. Create one from the current editor data.</p>
+        <p className="text-sm text-muted-foreground">No resumes yet.</p>
       ) : (
         <div className="border border-border rounded-md overflow-hidden">
           {rows.map((row, i) => {
@@ -222,10 +206,14 @@ export function ResumesTab({
               >
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{row.hash}</span>
                     {row.alias && (
                       <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded text-primary">
                         /{row.alias}
+                      </span>
+                    )}
+                    {!row.alias && (
+                      <span className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                        alias needed
                       </span>
                     )}
                     {isLoaded && (
@@ -234,7 +222,7 @@ export function ResumesTab({
                       </span>
                     )}
                     {row.isDefault && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-600 text-white font-medium">
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-foreground text-background font-medium">
                         default
                       </span>
                     )}
@@ -260,29 +248,27 @@ export function ResumesTab({
                   </div>
                   <button
                     type="button"
-                    onClick={() => cloneRow(row)}
-                    className="chip flex items-center gap-1"
-                    title="Clone this resume"
-                  >
-                    <Copy size={11} /> Clone
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => loadRow(row)}
                     className="chip flex items-center gap-1"
                     title="Load into editor"
                   >
                     <Download size={11} /> Active
                   </button>
-                  <a
-                    href={`/${row.hash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="chip flex items-center gap-1"
-                    title="Open resume page in new tab"
-                  >
-                    <ExternalLink size={11} /> Open
-                  </a>
+                  {row.alias ? (
+                    <a
+                      href={`/${row.alias}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="chip flex items-center gap-1"
+                      title="Open resume page in new tab"
+                    >
+                      <ExternalLink size={11} /> Open
+                    </a>
+                  ) : (
+                    <button type="button" disabled className="chip flex items-center gap-1 disabled:opacity-40">
+                      <ExternalLink size={11} /> Open
+                    </button>
+                  )}
                   {!row.isDefault && (
                     <button
                       type="button"
@@ -300,7 +286,7 @@ export function ResumesTab({
                   )}
                   <button
                     type="button"
-                    onClick={() => deleteRow(row.hash)}
+                    onClick={() => deleteRow(row)}
                     className="chip flex items-center gap-1 text-destructive border-destructive/30"
                     title="Delete"
                   >

@@ -136,6 +136,86 @@ function summarizeCandidate(portfolio: Portfolio): string {
   return `${portfolio.profile.name} is a ${portfolio.profile.title}. ${portfolio.profile.summary}${latestText}${topTech ? ` Core stack: ${topTech}.` : ""}`.trim();
 }
 
+const HONEST_COVER_LETTER_RULES = `Evidence rules:
+- Use only achievements, skills, employers, projects, certificates, education, stories, metrics, and impact explicitly present in the resume evidence.
+- Do not invent or imply missing metrics, production impact, leadership scope, employers, projects, certifications, domain experience, or years of experience.
+- Do not claim direct experience with a required technology unless it appears in the resume evidence.
+- You may describe transferable skills only when the resume evidence supports the bridge; label them as transferable or adjacent rather than direct experience.
+- Be honest about important missing or weakly supported requirements, but keep the letter constructive and professional.
+- Prefer concrete resume-backed examples over generic enthusiasm.
+- If the evidence is thin, write a shorter, more modest letter instead of filling gaps with speculation.`;
+
+function buildCoverLetterEvidenceContext(portfolio: Portfolio): string {
+  const visibleExperience = (portfolio.experience ?? []).filter((item) => item.enabled !== false);
+  const visibleProjects = (portfolio.projects ?? []).filter((item) => item.enabled !== false);
+  const visibleCertificates = (portfolio.certificates ?? []).filter((item) => item.enabled !== false);
+  const visibleEducation = (portfolio.education ?? []).filter((item) => item.enabled !== false);
+  const visibleStories = (portfolio.stories ?? []).filter((item) => item.enabled !== false);
+
+  const experience = visibleExperience.slice(0, 5).map((item) => [
+    `- ${item.role} at ${item.company}${item.period ? ` (${item.period})` : ""}`,
+    item.tech.length ? `  Tech: ${item.tech.join(", ")}` : "",
+    ...item.highlights.slice(0, 4).map((highlight) => `  Achievement: ${highlight}`),
+  ].filter(Boolean).join("\n")).join("\n");
+
+  const projects = visibleProjects.slice(0, 5).map((item) => [
+    `- ${item.name}${item.year ? ` (${item.year})` : ""}: ${item.tagline || item.description}`,
+    item.tech.length ? `  Tech: ${item.tech.join(", ")}` : "",
+  ].filter(Boolean).join("\n")).join("\n");
+
+  const certificates = visibleCertificates.slice(0, 6)
+    .map((item) => `- ${item.name}${item.issuer ? `, ${item.issuer}` : ""}${item.year ? ` (${item.year})` : ""}`)
+    .join("\n");
+
+  const education = visibleEducation.slice(0, 4)
+    .map((item) => `- ${item.degree}${item.field ? ` in ${item.field}` : ""}, ${item.institution}${item.period ? ` (${item.period})` : ""}`)
+    .join("\n");
+
+  const stories = visibleStories.slice(0, 4)
+    .map((item) => `- ${item.question}: ${item.answer}`)
+    .join("\n");
+
+  return [
+    `Profile: ${portfolio.profile.name}, ${portfolio.profile.title}. ${portfolio.profile.summary}`,
+    portfolio.tech.length ? `Skills: ${portfolio.tech.map((item) => item.name).join(", ")}` : "",
+    experience ? `Experience:\n${experience}` : "",
+    projects ? `Projects:\n${projects}` : "",
+    certificates ? `Certificates:\n${certificates}` : "",
+    education ? `Education:\n${education}` : "",
+    stories ? `Stories:\n${stories}` : "",
+  ].filter(Boolean).join("\n\n");
+}
+
+function buildHonestFallbackCoverLetter(
+  portfolio: Portfolio,
+  greeting: string,
+  summary: string,
+  vacancyText: string,
+  metrics: CoverLetterMetric[],
+): string {
+  const p = portfolio.profile;
+  const latest = (portfolio.experience ?? []).find((item) => item.enabled !== false);
+  const techSignals = portfolio.tech.slice(0, 5).map((t) => t.name).join(", ");
+  const importantGaps = metrics
+    .filter((m) => m.score < 65)
+    .map((m) => `- ${m.label}: ${m.score}% - ${m.summary}`)
+    .join("\n") || "- No major mismatch stands out from the available role text.";
+
+  return `${greeting}
+
+I am applying as ${p.name}, ${p.title}. I want to be direct about the fit based on my actual resume.
+
+The strongest evidence is ${summary}${latest ? ` My recent work as ${latest.role} at ${latest.company} included ${latest.highlights[0] ?? "relevant delivery experience"}.` : ""}${techSignals ? ` My visible stack includes ${techSignals}.` : ""}
+
+I also want to be clear about the trade-offs. Based on the provided job description${vacancyText.trim() ? "" : " (which is limited)"}, these are the areas to frame carefully:
+${importantGaps}
+
+If that mix is useful for the role, I would be glad to discuss where I can contribute quickly and where I would need ramp-up time.
+
+Best regards,
+${p.name}`;
+}
+
 async function savePortfolio(hash: string, portfolio: Portfolio): Promise<void> {
   await db.update(resumes).set({ resumeData: portfolio }).where(eq(resumes.hash, hash));
 }
@@ -245,7 +325,7 @@ Rules:
 - Call get_resume before answering factual questions about the person.
 - Before using any update_* tool, call get_resume and preserve unrelated existing entries. Section update tools replace the entire section they receive.
 - When updating data confirm what changed.
-- When writing a cover letter, first call get_resume, craft the full letter, then call save_cover_letter.
+- When writing or revising a cover letter, first call get_resume, use only resume-backed evidence, do not invent achievements or metrics, craft the full letter, then call save_cover_letter.
 - Be concise and professional. Tailor responses to a job-seeking context.`;
 }
 
@@ -438,17 +518,12 @@ export async function generateCoverLetterStream(
   const portfolio = row.resumeData as Portfolio;
   const metrics = scoreRoleFit(portfolio, vacancyText);
   const summary = summarizeCandidate(portfolio);
+  const evidenceContext = buildCoverLetterEvidenceContext(portfolio);
   const greetingName = recipientName.trim() || "Hiring Manager";
   const greeting = `Dear ${greetingName},`;
 
   if (!process.env.AI_API_KEY || process.env.AI_API_KEY === "no-key") {
-    const p = portfolio.profile;
-    const latest = portfolio.experience[0];
-    const importantGaps = metrics
-      .filter((m) => m.score < 65)
-      .map((m) => `- ${m.label}: ${m.score}% — ${m.summary}`)
-      .join("\n") || "- No major mismatch stands out from the available role text.";
-    const letter = `${greeting}\n\nI am applying as ${p.name}, ${p.title}. Here is the honest fit summary.\n\nBest fit points:\n- ${summary}\n${latest ? `- Recent role: ${latest.role} at ${latest.company}; ${latest.highlights[0] ?? "relevant delivery experience"}.` : "- Relevant professional delivery experience."}\n- Stack signals: ${portfolio.tech.slice(0, 5).map((t) => t.name).join(", ") || "not enough stack data available"}.\n\nNot-great-fit points:\n${importantGaps}\n\nRole fit:\n${metrics.map((m) => `- ${m.label}: ${m.score}% — ${m.summary}`).join("\n")}\n\nIf these trade-offs are acceptable, I would be glad to discuss where I can contribute quickly and where I would need ramp-up time.\n\nBest regards,\n${p.name}`;
+    const letter = buildHonestFallbackCoverLetter(portfolio, greeting, summary, vacancyText, metrics);
     for (const char of letter) cb.onDelta(char);
     const updated = attachCoverLetter(portfolio, letter, vacancyText, metrics, true, summary, recipientName.trim());
     await db.update(resumes).set({ coverLetter: letter, resumeData: updated }).where(eq(resumes.hash, hash));
@@ -464,14 +539,19 @@ export async function generateCoverLetterStream(
         role: "user",
         content: `You are writing a professional cover letter. Output ONLY the cover letter text — no preamble, no explanation.
 
+${HONEST_COVER_LETTER_RULES}
+
 Start exactly with: "${greeting}"
 
 Requirements:
 - Target 160–220 words. Plain text only.
-- Be honest and direct. If the stack, domain, seniority, or leadership level is not a great fit, say so briefly.
-- Highlight the most important fit and not-great-fit points.
+- Be honest and direct. If the stack, domain, seniority, or leadership level is not a great fit, say so briefly without making it the whole letter.
+- Highlight the most important fit points and the most important gaps.
 - Include tech stack overlap, experience transferability, leadership match, and overall fit.
 - End with: Best regards,\n${portfolio.profile.name}
+
+Resume evidence:
+${evidenceContext}
 
 Candidate summary: ${summary}
 Vacancy text: ${vacancyText || "(none provided)"}
@@ -534,9 +614,9 @@ export interface TextStreamCallbacks {
 }
 
 const COVER_EDIT_INSTRUCTIONS: Record<CoverLetterEditAction, string> = {
-  refine: "Fix grammar, typos, and awkward phrasing only. Do not change the structure, length, or meaning.",
-  longer: "Expand this cover letter by 20–30%, adding detail to existing points without introducing new unrelated sections.",
-  shorter: "Condense this cover letter by 20–30%, removing redundancy while keeping all key points.",
+  refine: "Fix grammar, typos, and awkward phrasing only. Do not change the structure, length, meaning, or factual claims. Do not add new achievements, metrics, technologies, leadership scope, employers, projects, certifications, or impact.",
+  longer: "Expand this cover letter by 20-30% by adding detail only to points already present in the letter. Do not add new achievements, metrics, technologies, leadership scope, employers, projects, certifications, or impact.",
+  shorter: "Condense this cover letter by 20-30%, removing redundancy while preserving the same factual claims. Do not add new achievements, metrics, technologies, leadership scope, employers, projects, certifications, or impact.",
 };
 
 export async function editCoverLetterStream(
@@ -637,36 +717,13 @@ export async function generateCoverLetter(hash: string, vacancyText = "", recipi
   const portfolio = row.resumeData as Portfolio;
   const metrics = scoreRoleFit(portfolio, vacancyText);
   const summary = summarizeCandidate(portfolio);
+  const evidenceContext = buildCoverLetterEvidenceContext(portfolio);
   const greetingName = recipientName.trim() || "Hiring Manager";
   const greeting = `Dear ${greetingName},`;
 
   // Fallback template when no AI key is configured
   if (!process.env.AI_API_KEY || process.env.AI_API_KEY === "no-key") {
-    const p = portfolio.profile;
-    const latest = portfolio.experience[0];
-    const importantGaps = metrics
-      .filter((m) => m.score < 65)
-      .map((m) => `- ${m.label}: ${m.score}% — ${m.summary}`)
-      .join("\n") || "- No major mismatch stands out from the available role text.";
-    const letter = `${greeting}
-
-I am applying as ${p.name}, ${p.title}. Here is the honest fit summary.
-
-Best fit points:
-- ${summary}
-${latest ? `- Recent role: ${latest.role} at ${latest.company}; ${latest.highlights[0] ?? "relevant delivery experience"}.` : "- Relevant professional delivery experience."}
-- Stack signals: ${portfolio.tech.slice(0, 5).map((t) => t.name).join(", ") || "not enough stack data available"}.
-
-Not-great-fit points:
-${importantGaps}
-
-Role fit:
-${metrics.map((m) => `- ${m.label}: ${m.score}% — ${m.summary}`).join("\n")}
-
-If these trade-offs are acceptable, I would be glad to discuss where I can contribute quickly and where I would need ramp-up time.
-
-Best regards,
-${p.name}`;
+    const letter = buildHonestFallbackCoverLetter(portfolio, greeting, summary, vacancyText, metrics);
 
     const updated = attachCoverLetter(portfolio, letter, vacancyText, metrics, true, summary, recipientName.trim());
     await db.update(resumes).set({ coverLetter: letter, resumeData: updated }).where(eq(resumes.hash, hash));
@@ -679,21 +736,27 @@ ${p.name}`;
       role: "user",
       content: `Generate a professional cover letter for me. Steps:
 1. Call get_resume to read my data.
-2. Generate a short professional cover letter based on the job description and user profile.
+2. Generate a short professional cover letter based on the job description and the resume data returned by get_resume.
 3. Start exactly with this greeting: "${greeting}"
 4. Keep it short enough to read in under 1 minute. Target 160-220 words. Plain text only.
-5. Be honest and direct. Do not sugarcoat weak fit areas. If the stack, domain, seniority, or leadership level is not a good fit, say that clearly and briefly.
-6. Highlight only the most important fit points and the most important not-great-fit points.
-7. Include:
+5. Follow these evidence rules:
+${HONEST_COVER_LETTER_RULES}
+6. Be honest and direct. Do not sugarcoat weak fit areas. If the stack, domain, seniority, or leadership level is not a good fit, say that clearly and briefly without making it the whole letter.
+7. Highlight only the most important fit points and the most important gaps.
+8. Include:
    - tech stack overlap, including whether it is a strong or weak fit
-   - experience and transferable skills, including adjacent stack fit such as C# to Java
+   - direct experience and transferable skills, clearly separating adjacent stack fit from direct experience
    - leadership fit, especially if candidate seniority does not match the role
    - overall match percentage
-   - Uses this vacancy text as the role context when present:
+9. Use this resume evidence snapshot only as grounding. The get_resume result is authoritative:
+${evidenceContext}
+10. Use this vacancy text as the role context when present:
 ${vacancyText || "(No vacancy text provided.)"}
-   - Use these role-fit metrics explicitly and honestly:
-${metrics.map((m) => `${m.label}: ${m.score}% — ${m.summary}`).join("\n")}
-8. Call save_cover_letter with the completed letter.`,
+11. Use these role-fit metrics explicitly and honestly:
+${metrics.map((m) => `${m.label}: ${m.score}% - ${m.summary}`).join("\n")}
+12. Call save_cover_letter with the completed letter.
+
+Do not include bullet labels like "fit points" or "gaps" unless they read naturally in the letter. Output only the completed cover letter through save_cover_letter.`,
     },
   ]);
 

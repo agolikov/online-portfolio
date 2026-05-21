@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Link, Navigate, useBlocker } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { Link, Navigate, useBlocker, useLocation } from "react-router-dom";
 import staticData from "@/data/portfolio.json";
 import type { Portfolio, Experience, Project, Certificate, Education, Tech, Story } from "@/types/portfolio";
 import { clearPortfolioOverride, loadPortfolio, savePortfolioOverride } from "@/lib/portfolioStore";
@@ -10,7 +10,7 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, RotateCcw, Download, Upload, Plus } from "lucide-react";
+import { ArrowLeft, RotateCcw, Download, Plus, Save } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, TagEditor, HighlightEditor, CardHeader } from "@/components/editor/EditorShared";
 import { move, uid } from "@/components/editor/EditorSharedUtils";
@@ -23,10 +23,19 @@ import { SummaryField } from "@/components/editor/SummaryField";
 const LAST_LOADED_RESUME_KEY = "portfolio-edit-last-loaded-resume";
 const LAST_TAB_KEY = "portfolio-edit-last-tab";
 
+interface EditLocationState {
+  returnTo?: string;
+}
+
 // ── Main editor body ──────────────────────────────────────────────────────────
 
 function EditBody() {
   const [data, setData] = useState<Portfolio>(() => loadPortfolio());
+  const location = useLocation();
+  const backTo = useMemo(() => {
+    const returnTo = (location.state as EditLocationState | null)?.returnTo;
+    return typeof returnTo === "string" && returnTo.startsWith("/") && !returnTo.startsWith("/edit") ? returnTo : "/";
+  }, [location.state]);
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem(LAST_TAB_KEY) ?? "resumes");
   const [expanded, setExpanded] = useState<Record<string, Set<string>>>({
     exp: new Set(),
@@ -37,14 +46,18 @@ function EditBody() {
   const [tagInputs, setTagInputs] = useState<Record<string, string>>({});
 
   const [loadedHash, setLoadedHash] = useState<string | null>(null);
+  const [loadedAlias, setLoadedAlias] = useState<string | null>(null);
   const [autoSaveState, setAutoSaveState] = useState<"idle" | "pending" | "saving" | "saved" | "error">("idle");
   const lastSavedRef = useRef<string>("");
+  const currentJson = useMemo(() => JSON.stringify(data), [data]);
+  const hasDbChanges = loadedHash !== null && currentJson !== lastSavedRef.current;
 
-  const handleLoad = useCallback((p: Portfolio, hash: string) => {
+  const handleLoad = useCallback((p: Portfolio, hash: string, alias: string | null = null) => {
     lastSavedRef.current = JSON.stringify(p);
     setData(p);
     savePortfolioOverride(p);
     setLoadedHash(hash);
+    setLoadedAlias(alias);
     localStorage.setItem(LAST_LOADED_RESUME_KEY, hash);
     setAutoSaveState("idle");
   }, []);
@@ -58,7 +71,7 @@ function EditBody() {
       .then((rows) => {
         if (!mounted) return;
         const row = rows.find((r) => r.hash === lastHash);
-        if (row) handleLoad(row.resumeData, row.hash);
+        if (row) handleLoad(row.resumeData, row.hash, row.alias);
       })
       .catch(() => undefined);
     return () => {
@@ -73,31 +86,45 @@ function EditBody() {
       if (hash !== loadedHash) return;
       try {
         const row = await resumesApi.get(loadedHash);
-        handleLoad(row.resumeData, row.hash);
+        handleLoad(row.resumeData, row.hash, row.alias);
       } catch { /* silent */ }
     };
     window.addEventListener("resume-data-changed", handler);
     return () => window.removeEventListener("resume-data-changed", handler);
   }, [loadedHash, handleLoad]);
 
-  useEffect(() => {
-    if (!loadedHash) return;
-    const json = JSON.stringify(data);
-    if (json === lastSavedRef.current) return;
-    setAutoSaveState("pending");
-    const timer = setTimeout(async () => {
+  const saveLoadedResume = useCallback(
+    async ({ notify = false }: { notify?: boolean } = {}) => {
+      if (!loadedHash) return false;
+      if (currentJson === lastSavedRef.current) {
+        if (notify) toast({ title: "Already saved" });
+        return true;
+      }
       setAutoSaveState("saving");
       try {
         await resumesApi.update(loadedHash, data);
-        lastSavedRef.current = json;
+        lastSavedRef.current = currentJson;
         setAutoSaveState("saved");
+        if (notify) toast({ title: "Saved", description: `Resume ${loadedHash} updated.` });
+        return true;
       } catch {
         setAutoSaveState("error");
-        toast({ title: "Auto-save failed", variant: "destructive" });
+        toast({ title: notify ? "Save failed" : "Auto-save failed", variant: "destructive" });
+        return false;
       }
+    },
+    [currentJson, data, loadedHash],
+  );
+
+  useEffect(() => {
+    if (!loadedHash) return;
+    if (currentJson === lastSavedRef.current) return;
+    setAutoSaveState("pending");
+    const timer = setTimeout(() => {
+      void saveLoadedResume();
     }, 1500);
     return () => clearTimeout(timer);
-  }, [data, loadedHash]);
+  }, [currentJson, loadedHash, saveLoadedResume]);
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -216,7 +243,7 @@ function EditBody() {
 
   // ── Leave-page guard ─────────────────────────────────────────────────────────
 
-  const hasUnsaved = loadedHash !== null && (autoSaveState === "pending" || autoSaveState === "saving" || autoSaveState === "error");
+  const hasUnsaved = loadedHash !== null && (hasDbChanges || autoSaveState === "pending" || autoSaveState === "saving" || autoSaveState === "error");
   const blocker = useBlocker(hasUnsaved);
 
   useEffect(() => {
@@ -233,6 +260,7 @@ function EditBody() {
     clearPortfolioOverride();
     setData(staticData as unknown as Portfolio);
     setLoadedHash(null);
+    setLoadedAlias(null);
     localStorage.removeItem(LAST_LOADED_RESUME_KEY);
     lastSavedRef.current = "";
     setAutoSaveState("idle");
@@ -247,21 +275,6 @@ function EditBody() {
     a.click();
     URL.revokeObjectURL(url);
   }
-  function upload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        setData(JSON.parse(String(reader.result ?? "")));
-        toast({ title: "Imported", description: file.name });
-      } catch {
-        toast({ title: "Import failed", description: "Invalid JSON", variant: "destructive" });
-      }
-    };
-    reader.readAsText(file);
-  }
-
   return (
     <div className="min-h-screen px-3 py-6 md:px-6 md:py-8">
       <main className="mx-auto flex max-w-5xl flex-col gap-4">
@@ -269,28 +282,35 @@ function EditBody() {
         {/* Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
           <div className="flex items-center gap-3 flex-wrap">
-            <Link to="/" className="chip flex items-center gap-1.5">
+            <Link to={backTo} className="chip flex items-center gap-1.5">
               <ArrowLeft size={12} /> Back
             </Link>
             <h1 className="text-xl font-semibold">Edit Resume</h1>
             <span className="chip" data-active="true">DEV ONLY</span>
             {loadedHash && (
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{loadedHash}</span>
+                <span className="font-mono bg-muted px-1.5 py-0.5 rounded">
+                  {loadedAlias ? `/${loadedAlias}` : "alias needed"}
+                </span>
                 {autoSaveState === "pending" && <span>unsaved</span>}
                 {autoSaveState === "saving" && <span>saving…</span>}
-                {autoSaveState === "saved" && <span className="text-green-600 dark:text-green-400">saved</span>}
+                {autoSaveState === "saved" && <span>saved</span>}
                 {autoSaveState === "error" && <span className="text-destructive">save failed</span>}
               </span>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <label className="chip flex items-center gap-1.5 cursor-pointer">
-              <Upload size={12} /> Import
-              <input type="file" accept="application/json" className="hidden" onChange={upload} />
-            </label>
             <button type="button" onClick={download} className="chip flex items-center gap-1.5">
               <Download size={12} /> Export JSON
+            </button>
+            <button
+              type="button"
+              onClick={() => void saveLoadedResume({ notify: true })}
+              disabled={!loadedHash || autoSaveState === "saving"}
+              className="chip flex items-center gap-1.5 disabled:opacity-40"
+              data-active={hasDbChanges ? "true" : undefined}
+            >
+              <Save size={12} /> {autoSaveState === "saving" ? "Saving..." : "Save"}
             </button>
             <button type="button" onClick={reset} className="chip flex items-center gap-1.5">
               <RotateCcw size={12} /> Reset
@@ -303,7 +323,7 @@ function EditBody() {
           <strong>Resumes</strong> tab to publish to the database and get a shareable link.
           {loadedHash ? (
             <>
-              {" "}Editing DB resume <code className="font-mono text-xs">{loadedHash}</code> — changes auto-save after 1.5 s.
+              {" "}Editing {loadedAlias ? <code className="font-mono text-xs">/{loadedAlias}</code> : "a resume without an alias"} — changes auto-save after 1.5 s.
             </>
           ) : (
             <>
@@ -323,7 +343,7 @@ function EditBody() {
                 ["tech", "tech"],
                 ["experience", "experience"],
                 ["certificates", "certificates"],
-                ["projects", "side projects"],
+                ["projects", "projects"],
                 ["education", "education"],
                 ["stories", "stories"],
               ] as const
@@ -347,7 +367,7 @@ function EditBody() {
           {/* ── CHAT ── */}
           <TabsContent value="chat">
             {loadedHash ? (
-              <ChatPane hash={loadedHash} messagesHeight="28rem" />
+              <ChatPane hash={loadedHash} displayLabel={loadedAlias ? `/${loadedAlias}` : "alias needed"} messagesHeight="28rem" />
             ) : (
               <p className="mt-6 text-sm text-muted-foreground">
                 Load a resume from the <strong>Resumes</strong> tab first — the AI needs a specific resume as context.
@@ -429,11 +449,11 @@ function EditBody() {
             </div>
           </TabsContent>
 
-          {/* ── SIDE PROJECTS ── */}
+          {/* ── PROJECTS ── */}
           <TabsContent value="projects" className="mt-6">
             <div className="mb-3 flex justify-end">
               <button type="button" onClick={addProj} className="chip flex items-center gap-1.5">
-                <Plus size={12} /> Add Side Project
+                <Plus size={12} /> Add Project
               </button>
             </div>
             <div className="space-y-2">
@@ -443,7 +463,7 @@ function EditBody() {
                 return (
                   <div key={p.id} className="border border-border rounded-md overflow-hidden">
                     <CardHeader
-                      title={p.name || "New Side Project"}
+                      title={p.name || "New Project"}
                       subtitle={p.tagline || undefined}
                       expanded={open}
                       enabled={isVisible(p)}

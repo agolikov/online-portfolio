@@ -6,7 +6,7 @@ import { toast } from "@/hooks/use-toast";
 import { CoverLetterPanel } from "@/components/portfolio/CoverLetterPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Eye, EyeOff, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Send, Sparkles } from "lucide-react";
 import { inputCls, labelCls } from "./EditorSharedUtils";
 
 export function CoverLetterTab({
@@ -21,8 +21,11 @@ export function CoverLetterTab({
   const [jobDescription, setJobDescription] = useState(data.coverLetters?.current?.vacancyText ?? "");
   const [recipientName, setRecipientName] = useState(data.coverLetters?.current?.recipientName ?? "");
   const [manualLetter, setManualLetter] = useState(data.coverLetters?.current?.content ?? "");
+  const [followUpInstruction, setFollowUpInstruction] = useState("");
+  const [followUpResponse, setFollowUpResponse] = useState("");
   const [generating, setGenerating] = useState(false);
   const [editingAction, setEditingAction] = useState<string | null>(null);
+  const [followingUp, setFollowingUp] = useState(false);
   const [streamingLetter, setStreamingLetter] = useState<string | null>(null);
   const savedLetterRef = useRef(data.coverLetters?.current?.content ?? "");
   const currentCoverLetter = data.coverLetters?.current;
@@ -80,7 +83,7 @@ export function CoverLetterTab({
   }
 
   async function editCoverLetter(action: "refine" | "longer" | "shorter") {
-    if (!loadedHash || !manualLetter.trim() || generating || editingAction) return;
+    if (!loadedHash || !manualLetter.trim() || generating || editingAction || followingUp) return;
     setEditingAction(action);
     setStreamingLetter("");
     try {
@@ -100,6 +103,60 @@ export function CoverLetterTab({
       toast({ title: "Failed to edit cover letter", variant: "destructive" });
     } finally {
       setEditingAction(null);
+    }
+  }
+
+  async function applyFollowUp() {
+    const instruction = followUpInstruction.trim();
+    if (!loadedHash || !manualLetter.trim() || !instruction || generating || editingAction || followingUp) return;
+    setFollowingUp(true);
+    setFollowUpResponse("");
+    let saved = false;
+    let errorMessage = "";
+    try {
+      await resumesApi.chatStream(
+        loadedHash,
+        [
+          {
+            role: "user",
+            content: [
+              "Update and save the current cover letter for this resume.",
+              "Use this cover letter as the source text:",
+              manualLetter,
+              `Follow-up edit instructions: ${instruction}`,
+              "Return only a brief confirmation to the user, but call save_cover_letter with the full revised cover letter text.",
+            ].join("\n"),
+          },
+        ],
+        (event) => {
+          if (event.type === "delta") {
+            setFollowUpResponse((prev) => prev + event.text);
+          } else if (event.type === "done") {
+            saved = event.dataChanged || event.coverLetterSaved;
+          } else if (event.type === "error") {
+            errorMessage = event.message;
+          }
+        },
+      );
+
+      if (errorMessage) throw new Error(errorMessage);
+
+      if (saved) {
+        const row = await resumesApi.get(loadedHash);
+        onChange(row.resumeData);
+        window.dispatchEvent(new CustomEvent("resume-data-changed", { detail: { hash: loadedHash } }));
+        setFollowUpInstruction("");
+        toast({ title: "Follow-up edits applied", description: "Saved to the loaded resume." });
+      } else {
+        toast({
+          title: "No cover letter changes saved",
+          description: "Review the assistant response and try a more explicit instruction.",
+        });
+      }
+    } catch (e) {
+      toast({ title: "Failed to apply follow-up edits", description: String(e), variant: "destructive" });
+    } finally {
+      setFollowingUp(false);
     }
   }
 
@@ -203,7 +260,7 @@ export function CoverLetterTab({
         <button
           type="button"
           onClick={generate}
-          disabled={!!generating || !!editingAction || !jobDescription.trim()}
+          disabled={!!generating || !!editingAction || followingUp || !jobDescription.trim()}
           className="chip flex items-center gap-1.5 disabled:opacity-40"
           data-active="true"
         >
@@ -220,13 +277,43 @@ export function CoverLetterTab({
             key={action}
             type="button"
             onClick={() => editCoverLetter(action)}
-            disabled={!!generating || !!editingAction || !manualLetter.trim()}
+            disabled={!!generating || !!editingAction || followingUp || !manualLetter.trim()}
             className="chip flex items-center gap-1.5 disabled:opacity-40"
           >
             {editingAction === action ? `${label}…` : label}
           </button>
         ))}
       </div>
+      {currentCoverLetter?.content && (
+        <div className="space-y-2">
+          <label className={labelCls} htmlFor="cover-follow-up">
+            Follow-up edits
+          </label>
+          <textarea
+            id="cover-follow-up"
+            rows={3}
+            className={`${inputCls} resize-y`}
+            value={followUpInstruction}
+            onChange={(e) => setFollowUpInstruction(e.target.value)}
+            placeholder="e.g. Make the opening more direct and mention React leadership."
+            disabled={generating || !!editingAction || followingUp}
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void applyFollowUp()}
+              disabled={generating || !!editingAction || followingUp || !followUpInstruction.trim() || !manualLetter.trim()}
+              className="chip flex items-center gap-1.5 disabled:opacity-40"
+              data-active="true"
+            >
+              <Send size={12} /> {followingUp ? "Applying..." : "Apply Follow-up"}
+            </button>
+            {followUpResponse && (
+              <span className="text-xs text-muted-foreground whitespace-pre-wrap">{followUpResponse}</span>
+            )}
+          </div>
+        </div>
+      )}
       <Tabs defaultValue="edit">
         <TabsList className="flex h-auto gap-1 bg-muted/50 p-1 w-fit">
           <TabsTrigger value="edit" className="text-xs uppercase tracking-widest">

@@ -6,4 +6,4 @@
 **Name:** <!-- project name -->
 **Description:** <!-- one paragraph summary of what this project does and for whom -->
 **Stage:** <!-- idea | prototype | alpha | beta | production -->
-**Source path:** <!-- path to source code relative to project root, e.g. src/ | app/ | . | apps/web/ apps/api/ -->
+**Source path:** `src/`, `server/`

@@ -2,7 +2,9 @@ import { useState } from "react";
 import type { Story } from "@/types/portfolio";
 import { isStoryVisible } from "@/lib/visibility";
 import { Switch } from "@/components/ui/switch";
-import { ChevronDown, ChevronUp, Eye, EyeOff, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Eye, EyeOff, Plus, Sparkles, Trash2 } from "lucide-react";
+import { resumesApi } from "@/lib/resumesApi";
+import { toast } from "@/hooks/use-toast";
 import { RefineButton } from "./EditorShared";
 import { inputCls, labelCls, move, uid } from "./EditorSharedUtils";
 
@@ -35,6 +37,7 @@ export function StoriesTab({
 }) {
   const [customQ, setCustomQ] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [busyStoryAction, setBusyStoryAction] = useState<string | null>(null);
 
   function toggleExpanded(id: string) {
     setExpanded((p) => {
@@ -64,6 +67,45 @@ export function StoriesTab({
 
   function toggleVisible(id: string, visible: boolean) {
     onChange(stories.map((s) => (s.id === id ? { ...s, enabled: visible } : s)));
+  }
+
+  async function runStoryAction(story: Story, action: "longer" | "shorter" | "improve") {
+    if (!hash || busyStoryAction || !story.answer.trim()) return;
+    setBusyStoryAction(`${story.id}-${action}`);
+    const instruction = {
+      longer: "Make this answer 20-30% longer. Keep it specific, practical, and in first person.",
+      shorter: "Make this answer 20-30% shorter. Keep the STAR structure and strongest evidence.",
+      improve: "Improve this answer for a behavioral interview. Keep it truthful, concrete, and use the STAR method.",
+    }[action];
+    let result = "";
+    let errorMessage = "";
+    try {
+      await resumesApi.chatStream(
+        hash,
+        [
+          {
+            role: "user",
+            content: [
+              "Rewrite the behavioral interview answer below.",
+              instruction,
+              "Output only the revised answer text. Do not include commentary.",
+              `Question: ${story.question}`,
+              `Answer: ${story.answer}`,
+            ].join("\n"),
+          },
+        ],
+        (event) => {
+          if (event.type === "delta") result += event.text;
+          if (event.type === "error") errorMessage = event.message;
+        },
+      );
+      if (errorMessage) throw new Error(errorMessage);
+      if (result.trim()) updateAnswer(story.id, result.trim());
+    } catch (e) {
+      toast({ title: "Story edit failed", description: String(e), variant: "destructive" });
+    } finally {
+      setBusyStoryAction(null);
+    }
   }
 
   const usedQuestions = new Set(stories.map((s) => s.question));
@@ -170,11 +212,31 @@ export function StoriesTab({
               {isOpen && (
                 <div className="px-4 py-3 space-y-1.5">
                   <div className="flex justify-end">
-                    <RefineButton
-                      hash={hash}
-                      value={story.answer}
-                      onDone={(text) => updateAnswer(story.id, text)}
-                    />
+                    <div className="flex flex-wrap justify-end gap-1.5">
+                      <RefineButton
+                        hash={hash}
+                        value={story.answer}
+                        onDone={(text) => updateAnswer(story.id, text)}
+                      />
+                      {(["longer", "shorter", "improve"] as const).map((action) => (
+                        <button
+                          key={action}
+                          type="button"
+                          onClick={() => void runStoryAction(story, action)}
+                          disabled={!hash || !story.answer.trim() || !!busyStoryAction}
+                          className="chip text-xs flex items-center gap-1 disabled:opacity-40"
+                        >
+                          <Sparkles size={10} />
+                          {busyStoryAction === `${story.id}-${action}`
+                            ? "Working..."
+                            : action === "longer"
+                              ? "Longer"
+                              : action === "shorter"
+                                ? "Shorter"
+                                : "Improve"}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <textarea
                     rows={5}

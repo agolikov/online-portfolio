@@ -32,11 +32,12 @@ function createMessageId() {
 
 interface Props {
   hash: string;
+  displayLabel?: string | null;
   /** Optional fixed height for the messages area (default: 22rem) */
   messagesHeight?: string;
 }
 
-export function ChatPane({ hash, messagesHeight = "22rem" }: Props) {
+export function ChatPane({ hash, displayLabel, messagesHeight = "22rem" }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -188,7 +189,7 @@ export function ChatPane({ hash, messagesHeight = "22rem" }: Props) {
       <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border shrink-0">
         <Bot size={14} className="accent-text shrink-0" />
         <span className="text-sm font-medium flex-1">AI Assistant</span>
-        <span className="font-mono text-xs text-muted-foreground">{hash}</span>
+        <span className="font-mono text-xs text-muted-foreground">{displayLabel ?? "loaded resume"}</span>
         <button
           type="button"
           onClick={clearHistory}

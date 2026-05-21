@@ -2,6 +2,8 @@ import { jsPDF } from "jspdf";
 import type { Portfolio } from "@/types/portfolio";
 import { isVisible } from "@/lib/visibility";
 
+const PDF_FONT = "helvetica";
+
 const LINK_LABELS: Record<string, string> = {
   "github.com": "GitHub",
   "gitlab.com": "GitLab",
@@ -23,7 +25,7 @@ function fullUrl(url: string): string {
   return url.startsWith("http") ? url : `https://${url}`;
 }
 
-function normalizePdfText(value: string): string {
+export function normalizePdfText(value: string): string {
   return value
     .normalize("NFKC")
     .replace(/```[a-z]*\n?/gi, "")
@@ -44,6 +46,18 @@ function normalizePdfText(value: string): string {
     .replace(/`([^`\n]+)`/g, "$1")
     .replace(/[^\S\n]+/g, " ")
     .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+export function escapePdfSummaryText(value: string): string {
+  return normalizePdfText(value)
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, "")
+    .replace(/\u00A0/g, " ")
+    .replace(/\u00AD/g, "")
+    .replace(/[\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, "")
+    .replace(/[\uFE00-\uFE0F]/g, "")
+    .replace(/[^\n\x20-\x7E\xA0-\xFF]/g, "")
+    .replace(/[^\S\n]+/g, " ")
     .trim();
 }
 
@@ -68,6 +82,7 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[], resu
    const W = doc.internal.pageSize.getWidth();
    const H = doc.internal.pageSize.getHeight();
    const M = 48;
+   const CONTENT_W = W - M * 2;
    let y = M;
 
    const SECTION_TITLE_OPTS = { size: 12, bold: true, color: 15, gap: 4 };
@@ -88,26 +103,36 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[], resu
     y += 10;
   }
 
-  function text(str: string, opts: { size?: number; bold?: boolean; color?: number; gap?: number } = {}) {
-    const { size = 10, bold = false, color = 20, gap = 4 } = opts;
-    doc.setFont("helvetica", bold ? "bold" : "normal");
+  function text(
+    str: string,
+    opts: { size?: number; bold?: boolean; color?: number; gap?: number; x?: number; width?: number } = {},
+  ) {
+    const { size = 10, bold = false, color = 20, gap = 4, x = M, width = CONTENT_W } = opts;
+    const clean = normalizePdfText(str);
+    if (!clean) return;
+    doc.setFont(PDF_FONT, bold ? "bold" : "normal");
     doc.setFontSize(size);
     doc.setTextColor(color);
-    const lines = doc.splitTextToSize(normalizePdfText(str), W - M * 2) as string[];
-    lines.forEach((l) => {
-      ensure(size + gap);
-      doc.text(l, M, y);
-      y += size + gap;
+    doc.setCharSpace(0);
+    const lineHeight = size + gap;
+    const lines = doc.splitTextToSize(clean, width) as string[];
+    ensure(lines.length * lineHeight);
+    doc.text(clean, x, y, {
+      align: "left",
+      charSpace: 0,
+      lineHeightFactor: lineHeight / size,
+      maxWidth: width,
     });
+    y += lines.length * lineHeight;
   }
 
   // Header
-  doc.setFont("helvetica", "bold");
+  doc.setFont(PDF_FONT, "bold");
   doc.setFontSize(21);
   doc.setTextColor(15);
   doc.text(normalizePdfText(profile.name), M, y);
   y += 24;
-  doc.setFont("helvetica", "normal");
+  doc.setFont(PDF_FONT, "normal");
   doc.setFontSize(12);
   doc.setTextColor(80);
   const titleLine = [profile.title, profile.location].filter(Boolean).join(" - ");
@@ -121,7 +146,7 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[], resu
     profile.linkedin ? { label: shortLink(profile.linkedin), url: fullUrl(profile.linkedin) } : null,
   ].filter(Boolean) as { label: string; url: string }[];
   if (contactItems.length > 0) {
-    doc.setFont("helvetica", "normal");
+    doc.setFont(PDF_FONT, "normal");
     doc.setFontSize(9);
     doc.setTextColor(60);
     const sep = "  -  ";
@@ -142,7 +167,7 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[], resu
   y += 14;
   rule();
 
-  text(profile.summary, { size: 10, color: 60, gap: 3 });
+  text(escapePdfSummaryText(profile.summary), { size: 10, color: 60, gap: 3 });
   y += 6;
 
 	 // Experience
@@ -154,7 +179,7 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[], resu
 
      expFiltered.forEach((e) => {
        ensure(60);
-       doc.setFont("helvetica", "bold");
+       doc.setFont(PDF_FONT, "bold");
        doc.setFontSize(11);
        doc.setTextColor(15);
        const expTitle = `${normalizePdfText(e.role)} - ${normalizePdfText(e.company)}`;
@@ -164,7 +189,7 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[], resu
          const lx = M + doc.getTextWidth(rolePrefix);
          doc.link(lx, y - 11, doc.getTextWidth(normalizePdfText(e.company)), 13, { url: fullUrl(e.companyUrl) });
        }
-       doc.setFont("helvetica", "normal");
+       doc.setFont(PDF_FONT, "normal");
        doc.setTextColor(90);
        doc.text(normalizePdfText(e.period), W - M, y, { align: "right" });
        y += 14;
@@ -174,27 +199,10 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[], resu
        y += 12;
 
        e.highlights.forEach((h) => {
-         doc.setFont("helvetica", "normal");
-         doc.setFontSize(10);
-         doc.setTextColor(40);
-         const lines = doc.splitTextToSize(`- ${normalizePdfText(h)}`, W - M * 2 - 10) as string[];
-         lines.forEach((l) => {
-           ensure(13);
-           doc.text(l, M + 8, y);
-           y += 13;
-         });
+         text(`- ${h}`, { size: 10, color: 40, gap: 3, x: M + 8, width: CONTENT_W - 10 });
        });
 
-       doc.setFont("helvetica", "italic");
-       doc.setFontSize(9);
-       doc.setTextColor(80);
-       const techLine = `Tech: ${e.tech.map(normalizePdfText).join(", ")}`;
-       const techLines = doc.splitTextToSize(techLine, W - M * 2) as string[];
-       techLines.forEach((l) => {
-         ensure(12);
-         doc.text(l, M, y);
-         y += 12;
-       });
+       text(`Tech: ${e.tech.map(normalizePdfText).join(", ")}`, { size: 9, color: 80, gap: 3 });
        y += 8;
      });
    }
@@ -208,12 +216,12 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[], resu
 
      prjFiltered.forEach((p) => {
        ensure(50);
-       doc.setFont("helvetica", "bold");
+       doc.setFont(PDF_FONT, "bold");
        doc.setFontSize(11);
        doc.setTextColor(15);
        const projTitle = (p.year && !p.hideYear) ? `${normalizePdfText(p.name)} - ${normalizePdfText(p.year)}` : normalizePdfText(p.name);
        doc.text(projTitle, M, y);
-       doc.setFont("helvetica", "normal");
+       doc.setFont(PDF_FONT, "normal");
        doc.setFontSize(9);
        doc.setTextColor(110);
        if (p.link) {
@@ -225,15 +233,7 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[], resu
        y += 13;
        text(p.tagline, { size: 10, bold: true, color: 40, gap: 3 });
        text(p.description, { size: 10, color: 60, gap: 3 });
-       doc.setFont("helvetica", "italic");
-       doc.setFontSize(9);
-       doc.setTextColor(80);
-       const techLines = doc.splitTextToSize(`Tech: ${p.tech.map(normalizePdfText).join(", ")}`, W - M * 2) as string[];
-       techLines.forEach((l) => {
-         ensure(12);
-         doc.text(l, M, y);
-         y += 12;
-       });
+       text(`Tech: ${p.tech.map(normalizePdfText).join(", ")}`, { size: 9, color: 80, gap: 3 });
        y += 8;
      });
    }
@@ -246,12 +246,12 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[], resu
      y += SECTION_GAP_AFTER_TITLE;
      certFiltered.forEach((c) => {
        ensure(28);
-       doc.setFont("helvetica", "bold");
+       doc.setFont(PDF_FONT, "bold");
        doc.setFontSize(10);
        doc.setTextColor(20);
        doc.text(normalizePdfText(c.name), M, y);
        if (!c.hideYear && c.year) {
-         doc.setFont("helvetica", "normal");
+         doc.setFont(PDF_FONT, "normal");
          doc.setTextColor(90);
          doc.text(normalizePdfText(c.year), W - M, y, { align: "right" });
        }
@@ -273,28 +273,22 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[], resu
 
      visibleEducation.forEach((edu) => {
        ensure(50);
-       doc.setFont("helvetica", "bold");
+       doc.setFont(PDF_FONT, "bold");
        doc.setFontSize(10);
        doc.setTextColor(20);
        doc.text(normalizePdfText(edu.institution), M, y);
        if (edu.showDates !== false && edu.period) {
-         doc.setFont("helvetica", "normal");
+         doc.setFont(PDF_FONT, "normal");
          doc.setFontSize(9);
          doc.setTextColor(110);
          doc.text(normalizePdfText(edu.period), W - M, y, { align: "right" });
        }
        y += 14;
 
-       doc.setFont("helvetica", "normal");
+       doc.setFont(PDF_FONT, "normal");
        doc.setFontSize(9);
        doc.setTextColor(90);
-       const eduLine = `${normalizePdfText(edu.degree)} - ${normalizePdfText(edu.field)}`;
-       const eduLines = doc.splitTextToSize(eduLine, W - M * 2) as string[];
-       eduLines.forEach((l) => {
-         ensure(12);
-         doc.text(l, M, y);
-         y += 12;
-       });
+       text(`${edu.degree} - ${edu.field}`, { size: 9, color: 90, gap: 3 });
        y += 4;
      });
    }
@@ -303,7 +297,7 @@ export function exportPortfolioPdf(data: Portfolio, selectedTech: string[], resu
   const total = doc.getNumberOfPages();
   for (let i = 1; i <= total; i++) {
     doc.setPage(i);
-    doc.setFont("helvetica", "normal");
+    doc.setFont(PDF_FONT, "normal");
     doc.setFontSize(8);
     doc.setTextColor(140);
     doc.text(`${normalizePdfText(profile.name)} - Page ${i} of ${total}`, W / 2, H - 20, { align: "center" });

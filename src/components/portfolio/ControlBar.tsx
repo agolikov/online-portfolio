@@ -1,9 +1,8 @@
 import posthog from "posthog-js";
-import { ACCENTS, type Accent, useTheme } from "@/context/theme";
-import { Sun, Moon, FileDown, Palette, Pencil } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
+import { useTheme } from "@/context/theme";
+import { Sun, Moon, FileDown, Pencil } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 function GithubIcon({ size = 13 }: { size?: number }) {
   return (
@@ -13,64 +12,22 @@ function GithubIcon({ size = 13 }: { size?: number }) {
   );
 }
 
-const ACCENT_PREVIEW: Record<Accent, string> = {
-  emerald: "hsl(152 76% 44%)",
-  amber:   "hsl(38 92% 50%)",
-  rose:    "hsl(346 84% 58%)",
-  violet:  "hsl(262 84% 65%)",
-  cyan:    "hsl(190 90% 50%)",
-};
-
 interface Props {
   onExport: () => void;
 }
 
 export function ControlBar({ onExport }: Props) {
-  const { mode, toggleMode, scheme, setScheme, accent, setAccent } = useTheme();
-  const isBoring = mode === "boring";
+  const { scheme, setScheme } = useTheme();
+  const location = useLocation();
   const isDark = scheme === "dark";
+  const returnTo = `${location.pathname}${location.search}${location.hash}`;
 
   return (
     <div className="toolbar-surface sticky top-3 z-30 mx-auto mb-8 flex w-full flex-wrap items-center justify-between gap-3 px-4 py-2.5 print:hidden backdrop-blur supports-[backdrop-filter]:bg-background/75">
-      {/* Left: colorful toggle */}
-      <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-        <span className={!isBoring ? "text-foreground font-medium" : ""}>Color</span>
-        <Switch
-          checked={!isBoring}
-          onCheckedChange={() => {
-            posthog.capture("theme_mode_toggled", { mode: isBoring ? "colorful" : "boring" });
-            toggleMode();
-          }}
-          aria-label="Toggle colorful mode"
-        />
-      </div>
+      <div aria-hidden="true" />
 
       {/* Right: controls */}
       <div className="flex items-center gap-1.5">
-        {/* Accent swatches (colorful mode only) */}
-        {!isBoring && (
-          <div className="mr-1 flex items-center gap-1.5">
-            <Palette size={14} className="text-muted-foreground" />
-            {ACCENTS.map((a) => (
-              <Tooltip key={a}>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label={`Accent ${a}`}
-                    onClick={() => { posthog.capture("accent_changed", { accent: a }); setAccent(a); }}
-                    className="h-5 w-5 rounded-full border transition-transform hover:scale-110"
-                    style={{
-                      background: ACCENT_PREVIEW[a],
-                      borderColor: accent === a ? "hsl(var(--foreground))" : "transparent",
-                    }}
-                  />
-                </TooltipTrigger>
-                <TooltipContent>{a}</TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        )}
-
         {/* Light / dark toggle */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -110,7 +67,7 @@ export function ControlBar({ onExport }: Props) {
         {import.meta.env.DEV && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Link to="/edit" className="chip" aria-label="Edit portfolio">
+              <Link to="/edit" state={{ returnTo }} className="chip" aria-label="Edit portfolio">
                 <Pencil size={13} />
               </Link>
             </TooltipTrigger>
